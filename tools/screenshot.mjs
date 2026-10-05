@@ -12,6 +12,8 @@ mkdirSync(out, { recursive: true });
 
 const SHOTS = [
   ['idle_front',  { state: 'idle', t: 0.3, cam: 'front' }],
+  ['idle_front_3d', { state: 'idle', t: 0.3, cam: 'front', face3d: 1 }],
+  ['face_neutral_3d', { state: 'idle', t: 0.3, cam: 'face', face3d: 1 }],
   ['idle_tq',     { state: 'idle', t: 0.3, cam: 'tq' }],
   ['idle_side',   { state: 'idle', t: 0.3, cam: 'side' }],
   ['idle_back',   { state: 'idle', t: 0.3, cam: 'back' }],

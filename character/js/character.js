@@ -2,6 +2,7 @@
 // Mọi bộ phận đều là Object3D có TÊN DUY NHẤT (xem bảng tên trong docs/CHARACTER_DESIGN.md).
 // Tên này được dùng ở 3 nơi: poses.js (animation), face.js (biểu cảm) và export.js (xuất GLB).
 import * as THREE from 'three';
+import { createFacePlate } from './face2d.js';
 
 export const PALETTE = {
   body:   '#C9966F', // lông chính (nâu mật ong)
@@ -142,18 +143,19 @@ export function buildCharacter() {
 
   // ---------- Khuôn mặt (con của Head, toạ độ quanh tâm đầu) ----------
   for (const [side, sg] of [['L', 1], ['R', -1]]) {
-    const eye = G('Eye' + side, head, 0.20 * sg, 0.07, 0.42);
-    M('Eyeball' + side, eye, sphere(0.105), mats.eye);
+    // Mắt lún vào đầu (tâm ở z = 0.40, bán kính 0.095 → chỉ nhô 0.02 khỏi mặt đầu)
+    const eye = G('Eye' + side, head, 0.20 * sg, 0.07, 0.40);
+    M('Eyeball' + side, eye, sphere(0.095), mats.eye);
     // Mắt to đen bóng: con ngươi gần bằng tròng, 2 chấm sáng
-    const pupil = M('Pupil' + side, eye, sphere(0.085, 20, 14), mats.pupil, 0, 0, 0.04);
-    pupil.userData.baseZ = 0.04;
-    const shine = M('Shine' + side, eye, sphere(0.026, 8, 6), mats.shine, 0.03 * sg, 0.035, 0.11);
-    shine.userData.base = { x: 0.03 * sg, y: 0.035 };
+    const pupil = M('Pupil' + side, eye, sphere(0.078, 20, 14), mats.pupil, 0, 0, 0.03);
+    pupil.userData.baseZ = 0.03;
+    const shine = M('Shine' + side, eye, sphere(0.024, 8, 6), mats.shine, 0.028 * sg, 0.032, 0.095);
+    shine.userData.base = { x: 0.028 * sg, y: 0.032 };
     shine.castShadow = false;
-    const shine2 = M('Shine2' + side, eye, sphere(0.012, 8, 6), mats.shine, -0.03 * sg, -0.035, 0.115);
+    const shine2 = M('Shine2' + side, eye, sphere(0.011, 8, 6), mats.shine, -0.028 * sg, -0.032, 0.1);
     shine2.castShadow = false;
-    const lt = M('LidTop' + side, eye, lidGeo(0.135), mats.body);
-    const lb = M('LidBot' + side, eye, lidGeo(0.131), mats.body);
+    const lt = M('LidTop' + side, eye, lidGeo(0.118), mats.body);
+    const lb = M('LidBot' + side, eye, lidGeo(0.115), mats.body);
     lt.rotation.order = 'ZXY';
     lb.rotation.order = 'ZXY';
 
@@ -213,6 +215,12 @@ export function buildCharacter() {
   // Chi tiết mặt nhỏ: không đổ bóng để hốc mắt / miệng không bị tối
   head.traverse((o) => { if (o.isMesh && o !== head && !o.name.startsWith('Ear')) o.castShadow = false; });
 
+  // Mặt 2D "vẽ lên": chỏm cầu dán texture canvas, ôm sát đầu (face2d.js)
+  const plate = createFacePlate(0.52);
+  plate.mesh.material.gradientMap = grad;
+  head.add(plate.mesh);
+  nodes.FacePlate = plate.mesh;
+
   // ---------- Lưu tư thế nghỉ ----------
   const rest = {};
   for (const [name, obj] of Object.entries(nodes)) {
@@ -223,7 +231,23 @@ export function buildCharacter() {
     };
   }
 
-  return { root, nodes, rest, mats };
+  return { root, nodes, rest, mats, plate };
+}
+
+/** Các node mặt 3D bị ẩn khi dùng mặt 2D. */
+export const FACE3D_NODES = ['EyeL', 'EyeR', 'BrowL', 'BrowR', 'CheekL', 'CheekR', 'Mouth', 'Muzzle'];
+
+/** Chọn kiểu mặt: '2d' (vẽ lên) hoặc '3d' (khối). */
+export function setFaceMode(nodes, mode) {
+  const is2d = mode === '2d';
+  for (const n of FACE3D_NODES) nodes[n].visible = !is2d;
+  nodes.FacePlate.visible = is2d;
+}
+
+/** Bảng màu hiện tại dạng chuỗi CSS, để vẽ mặt 2D. */
+export function currentColors(mats) {
+  const hex = (m) => '#' + m.color.getHexString();
+  return { skin: hex(mats.body), belly: hex(mats.belly), accent: hex(mats.accent), cheek: hex(mats.cheek), eye: hex(mats.eye), pupil: hex(mats.pupil), mouth: hex(mats.mouth), tongue: hex(mats.tongue) };
 }
 
 /** Đưa toàn bộ khung về tư thế nghỉ (gọi trước mỗi lần áp pose). */

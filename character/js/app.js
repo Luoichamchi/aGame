@@ -3,7 +3,7 @@
 //                   → blend với tư thế cũ → biểu cảm (lerp + chớp mắt + nhìn camera) → render.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/OrbitControls.js';
-import { buildCharacter, resetPose, setColors, capturePose, blendFromSnapshot, PALETTE } from './character.js';
+import { buildCharacter, resetPose, setColors, capturePose, blendFromSnapshot, setFaceMode, currentColors, PALETTE } from './character.js';
 import { applyFace, lerpFace, EXPRESSIONS, FACE_DEFAULT } from './face.js';
 import { POSES, STATES } from './poses.js';
 import { exportGLB } from './export.js';
@@ -82,7 +82,8 @@ scene.add(ground);
 }
 
 // ---------------- Nhân vật ----------------
-const { root, nodes, rest, mats } = buildCharacter();
+const { root, nodes, rest, mats, plate } = buildCharacter();
+let faceColors = currentColors(mats);
 const mover = new THREE.Group();          // vị trí & hướng trên sân (KHÔNG xuất ra GLB)
 mover.name = 'Mover';
 mover.add(root);
@@ -94,6 +95,7 @@ const S = {
   lock: false,              // true = không tự đổi trạng thái (ảnh tĩnh)
   autoMove: null,            // 'walk' | 'run' | 'fly' khi bấm nút (đi vòng tròn)
   manualFace: null,          // biểu cảm người dùng chọn; null = theo trạng thái
+  faceMode: params.get('face3d') === '1' ? '3d' : '2d',   // '2d' vẽ lên | '3d' khối
   snap: null, blendT: 1, BLEND: 0.22,
   face: { ...FACE_DEFAULT },
   blink: { next: 1.5, t: -1 },
@@ -306,7 +308,8 @@ function update(dt) {
       }
     }
   }
-  applyFace(nodes, f);
+  if (S.faceMode === '2d') plate.draw(f, faceColors);
+  else applyFace(nodes, f);
 
   // ---- Camera & nắng đi theo nhân vật ----
   if (!FROZEN) {
@@ -348,6 +351,7 @@ function updateHud(faceKey) {
   ui.hudFace.textContent = EXPRESSIONS[faceKey].label + (S.manualFace ? '' : ' (tự động)');
   document.querySelectorAll('[data-state]').forEach((b) => b.classList.toggle('on', b.dataset.state === S.state));
   document.querySelectorAll('[data-face]').forEach((b) => b.classList.toggle('on', b.dataset.face === (S.manualFace || 'auto')));
+  document.querySelectorAll('[data-facemode]').forEach((b) => b.classList.toggle('on', b.dataset.facemode === S.faceMode));
 }
 
 function say(text) {
@@ -382,14 +386,19 @@ function buildUI() {
   for (const id of ['body', 'belly', 'accent', 'leaf']) {
     const inp = document.getElementById('col-' + id);
     inp.value = PALETTE[id];
-    inp.oninput = () => setColors(mats, { [id]: inp.value });
+    inp.oninput = () => { setColors(mats, { [id]: inp.value }); faceColors = currentColors(mats); };
+  }
+  for (const b of document.querySelectorAll('[data-facemode]')) {
+    b.onclick = () => { S.faceMode = b.dataset.facemode; setFaceMode(nodes, S.faceMode); lastHud = ''; };
   }
   ui.demo.onclick = () => (S.demo ? stopDemo() : startDemo());
   document.getElementById('btn-export').onclick = async () => {
     say('Đang bake animation & xuất GLB…');
     try {
       const snapState = { state: S.state, t: S.stateT };
+      setFaceMode(nodes, '3d');
       const bytes = await exportGLB(root, nodes, rest, 'bong.glb');
+      setFaceMode(nodes, S.faceMode);
       S.state = snapState.state; S.stateT = snapState.t;
       say(`Đã xuất bong.glb (${(bytes / 1024).toFixed(0)} KB) – mở bằng Blender / Unity / Godot.`);
     } catch (e) {
@@ -418,6 +427,7 @@ window.addEventListener('resize', resize);
 
 // ---------------- Khởi động ----------------
 buildUI();
+setFaceMode(nodes, S.faceMode);
 resize();
 
 const CAMS = {
