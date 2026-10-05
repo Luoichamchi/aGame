@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Bông – nhân vật 3D</title>
+<style>
+  :root {
+    --bg: rgba(255,255,255,.86); --ink: #2a2c3e; --accent: #ff9a3c; --accent2: #ffc247; --line: #e6e8f0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); background: #cdebff; }
+  canvas#c { display: block; width: 100vw; height: 100vh; touch-action: none; }
+
+  #panel { position: fixed; left: 12px; top: 12px; width: 300px; max-height: calc(100vh - 24px); overflow: auto;
+    background: var(--bg); backdrop-filter: blur(8px); border-radius: 16px; padding: 14px 14px 10px; box-shadow: 0 8px 30px rgba(40,50,90,.18); transition: transform .25s; }
+  #panel h1 { font-size: 18px; margin: 0 0 2px; }
+  #panel h1 small { font-weight: 400; color: #777; font-size: 12px; margin-left: 6px; }
+  #panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #888; margin: 14px 0 6px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; }
+  button { font: inherit; font-size: 13px; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 10px; padding: 6px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  button:hover { border-color: var(--accent); }
+  button.on { background: var(--accent2); border-color: var(--accent); font-weight: 600; }
+  button kbd { font: 10px/1 ui-monospace, monospace; background: #f1f2f6; border: 1px solid #d8dbe6; border-radius: 4px; padding: 2px 4px; color: #666; }
+  button.on kbd { background: rgba(255,255,255,.6); }
+  .colors label { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; margin-right: 8px; }
+  .colors input { width: 28px; height: 24px; border: none; padding: 0; background: none; cursor: pointer; }
+  #hud { font-size: 13px; background: #f6f7fb; border-radius: 10px; padding: 8px 10px; margin-top: 4px; line-height: 1.5; }
+  #hud b { color: var(--accent); }
+  .help { font-size: 11.5px; color: #666; line-height: 1.55; margin-top: 10px; }
+  .help kbd { font: 10px/1 ui-monospace, monospace; background: #f1f2f6; border: 1px solid #d8dbe6; border-radius: 4px; padding: 1px 4px; }
+  #msg { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%) translateY(20px); opacity: 0; background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; transition: .25s; pointer-events: none; max-width: 90vw; }
+  #msg.show { opacity: 1; transform: translateX(-50%); }
+  #btn-toggle { display: none; position: fixed; left: 12px; top: 12px; z-index: 2; width: 40px; height: 40px; justify-content: center; border-radius: 12px; font-size: 18px; }
+  @media (max-width: 640px) {
+    #btn-toggle { display: inline-flex; }
+    #panel { left: 0; right: 0; top: auto; bottom: 0; width: 100%; max-height: 62vh; border-radius: 16px 16px 0 0; }
+    #panel.collapsed { transform: translateY(calc(100% - 46px)); }
+  }
+  body.noui #panel, body.noui #btn-toggle, body.noui #msg { display: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="btn-toggle" title="Ẩn / hiện bảng điều khiển">☰</button>
+
+<div id="panel">
+  <h1>Bông <small>nhân vật thử nghiệm</small></h1>
+  <div id="hud">Trạng thái: <b id="hud-state">…</b><br>Biểu cảm: <b id="hud-face">…</b></div>
+
+  <h2>Hành động</h2>
+  <div class="row" id="states"></div>
+
+  <h2>Biểu cảm</h2>
+  <div class="row" id="faces"></div>
+
+  <h2>Màu sắc</h2>
+  <div class="colors">
+    <label><input type="color" id="col-body"> Thân</label>
+    <label><input type="color" id="col-belly"> Bụng</label>
+    <label><input type="color" id="col-accent"> Tay chân</label>
+    <label><input type="color" id="col-leaf"> Lá</label>
+  </div>
+
+  <h2>Khác</h2>
+  <div class="row">
+    <button id="btn-demo">▶ Demo tự động</button>
+    <button id="btn-export">⬇ Xuất GLB</button>
+    <button id="btn-cam">⟲ Camera</button>
+  </div>
+
+  <div class="help">
+    <kbd>W A S D</kbd> / mũi tên: đi &nbsp;·&nbsp; giữ <kbd>Shift</kbd>: chạy &nbsp;·&nbsp; <kbd>Space</kbd>: nhảy<br>
+    <kbd>R</kbd>: lăn &nbsp;·&nbsp; <kbd>C</kbd>: trượt &nbsp;·&nbsp; <kbd>F</kbd>: bật / tắt bay<br>
+    Kéo chuột để xoay camera, lăn chuột để zoom. Nút <i>Đi / Chạy / Bay</i> cho nhân vật tự đi vòng tròn.
+  </div>
+</div>
+<div id="msg"></div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/" } }
+</script>
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
