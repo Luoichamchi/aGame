@@ -31,12 +31,12 @@ Bảng bên trái có nút cho từng hành động, từng biểu cảm, đổi
 character/
   index.html        giao diện + import map
   js/character.js   dựng mô hình từ khối cơ bản, đặt tên node, tư thế nghỉ
-  js/face.js        14 biểu cảm = bộ tham số số học → áp lên node mặt 3D
-  js/face2d.js      mặt "vẽ lên": canvas → texture dán sát đầu (mặc định)
+  js/face.js        bảng 14 biểu cảm = bộ tham số số học
+  js/face2d.js      vẽ mặt bằng canvas → texture dán sát đầu
   js/poses.js       7 trạng thái (idle/walk/run/jump/roll/slide/fly) = hàm pose(nodes, t)
   js/app.js         scene, điều khiển, máy trạng thái, demo, UI
   js/export.js      bake pose → keyframe → GLB (kèm 21 animation clip)
-  vendor/           three.module.js, OrbitControls.js, GLTFExporter.js (r170, MIT)
+  vendor/           three.module.js, OrbitControls.js, GLTFExporter.js, RoomEnvironment.js (r170, MIT)
 docs/
   CHARACTER_DESIGN.md   tài liệu thiết kế nhân vật (đọc cái này trước khi sửa)
   images/               ảnh render các trạng thái / biểu cảm

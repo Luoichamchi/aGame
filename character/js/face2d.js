@@ -23,11 +23,12 @@ export function createFacePlate(headRadius) {
   const geo = new THREE.SphereGeometry(headRadius + 0.012, 64, 48,
     Math.PI / 2 + FACE2D.X0, phiLen,
     Math.PI / 2 - FACE2D.Y1, thetaLen);
-  const mat = new THREE.MeshToonMaterial({ map: texture, transparent: true, depthWrite: false });
+  // alphaTest loại pixel trong suốt; không nhận bóng vì bóng VSM sẽ in vệt lên vùng trong suốt
+  const mat = new THREE.MeshStandardMaterial({ map: texture, transparent: true, alphaTest: 0.02, depthWrite: false, roughness: 0.9, metalness: 0 });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.name = 'FacePlate';
   mesh.castShadow = false;
-  mesh.receiveShadow = true;
+  mesh.receiveShadow = false;
   mesh.renderOrder = 1;
 
   let lastKey = '';
@@ -38,7 +39,6 @@ export function createFacePlate(headRadius) {
     drawFace(ctx, f, c);
     texture.needsUpdate = true;
   }
-  mesh.material.gradientMapHolder = null;
   return { mesh, draw, texture, canvas };
 }
 

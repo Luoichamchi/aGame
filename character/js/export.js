@@ -1,10 +1,9 @@
 // export.js — Bake các pose thủ tục thành keyframe rồi xuất GLB (glTF binary).
-// File GLB chứa: mesh + hierarchy + các clip: Idle, Walk, Run, Jump, Roll, Slide, Fly, Face_<tên biểu cảm>.
+// File GLB chứa: mesh + hierarchy + 7 clip: Idle, Walk, Run, Jump, Roll, Slide, Fly. Mặt là texture trên FacePlate.
 // Dùng được trong Unity / Godot / Blender / three.js. Clip Walk/Run/Fly là "in-place" (engine tự di chuyển).
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/addons/GLTFExporter.js';
 import { resetPose } from './character.js';
-import { applyFace, EXPRESSIONS } from './face.js';
 import { POSES, STATES } from './poses.js';
 
 const FPS = 30;
@@ -47,18 +46,12 @@ function sampleClip(name, nodes, rest, duration, applyFrame) {
 /** Tạo danh sách AnimationClip từ POSES + EXPRESSIONS. */
 export function bakeClips(nodes, rest) {
   const clips = [];
-  const neutral = EXPRESSIONS.neutral.params;
   for (const [key, st] of Object.entries(STATES)) {
     const dur = st.loop ? st.period : st.duration;
-    const face = EXPRESSIONS[st.face].params;
     const name = key.charAt(0).toUpperCase() + key.slice(1);
-    clips.push(sampleClip(name, nodes, rest, dur, (t) => { POSES[key](nodes, t); applyFace(nodes, face); }));
-  }
-  for (const [key, ex] of Object.entries(EXPRESSIONS)) {
-    clips.push(sampleClip('Face_' + key, nodes, rest, 1 / FPS, () => applyFace(nodes, ex.params)));
+    clips.push(sampleClip(name, nodes, rest, dur, (t) => POSES[key](nodes, t)));
   }
   resetPose(nodes, rest);
-  applyFace(nodes, neutral);
   return clips;
 }
 

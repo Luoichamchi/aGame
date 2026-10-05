@@ -3,8 +3,9 @@
 //                   → blend với tư thế cũ → biểu cảm (lerp + chớp mắt + nhìn camera) → render.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/OrbitControls.js';
-import { buildCharacter, resetPose, setColors, capturePose, blendFromSnapshot, setFaceMode, currentColors, PALETTE } from './character.js';
-import { applyFace, lerpFace, EXPRESSIONS, FACE_DEFAULT } from './face.js';
+import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
+import { buildCharacter, resetPose, setColors, capturePose, blendFromSnapshot, currentColors, PALETTE } from './character.js';
+import { lerpFace, EXPRESSIONS, FACE_DEFAULT } from './face.js';
 import { POSES, STATES } from './poses.js';
 import { exportGLB } from './export.js';
 
@@ -18,19 +19,29 @@ const FROZEN = params.has('state');          // chế độ chụp ảnh tĩnh (
 if (params.get('ui') === '0') document.body.classList.add('noui');
 
 // ---------------- Khung cảnh ----------------
+// Hướng hình ảnh: "clay render" — vật liệu mờ, ánh sáng môi trường mềm, bóng mịn, nền sạch, không chi tiết thừa.
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: FROZEN });
 renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.VSMShadowMap;          // bóng mềm, không răng cưa / viền đen
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
 
+const SKY = '#E4EEF6';
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#CDEBFF');
-scene.fog = new THREE.Fog('#CDEBFF', 20, 45);
+scene.background = new THREE.Color(SKY);
+scene.fog = new THREE.Fog(SKY, 16, 40);
+{
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.55;
+  pmrem.dispose();
+}
 
-const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-camera.position.set(0, 2.2, 5.6);
+const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+camera.position.set(0, 2.1, 5.6);
 
 const controls = new OrbitControls(camera, canvas);
 controls.target.set(0, 0.9, 0);
@@ -40,45 +51,41 @@ controls.maxDistance = 12;
 controls.maxPolarAngle = Math.PI * 0.49;
 controls.enableDamping = true;
 
-scene.add(new THREE.HemisphereLight('#ffffff', '#8fc97a', 1.0));
-const sun = new THREE.DirectionalLight('#fff4d6', 2.4);
-sun.position.set(4, 8, 5);
+scene.add(new THREE.HemisphereLight('#FFFFFF', '#BFD3B0', 0.35));
+const sun = new THREE.DirectionalLight('#FFF3E0', 2.6);
+sun.position.set(3.5, 7, 4.5);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
+Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 30 });
+sun.shadow.radius = 7;
+sun.shadow.blurSamples = 16;
 sun.shadow.bias = -0.0002;
-sun.shadow.normalBias = 0.15;
-sun.shadow.radius = 3;
 scene.add(sun, sun.target);
+const rim = new THREE.DirectionalLight('#DDEBFF', 0.9);   // viền sáng nhẹ từ sau để tách nhân vật khỏi nền
+rim.position.set(-4, 5, -6);
+scene.add(rim);
 
-const ground = new THREE.Mesh(
-  new THREE.CircleGeometry(18, 64),
-  new THREE.MeshToonMaterial({ color: '#BFE8A6' }),
-);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
-
-// Vài bụi cây để cảm nhận được chuyển động (vị trí cố định, không ngẫu nhiên)
+// Sân: mặt phẳng màu sage, chấm mờ cách 1 m để cảm nhận chuyển động
 {
-  const bushGeo = new THREE.SphereGeometry(1, 16, 12);
-  const bushMats = ['#7CC46B', '#69B85E', '#8AD077'].map((c) => new THREE.MeshToonMaterial({ color: c }));
-  for (let i = 0; i < 14; i++) {
-    const a = (i / 14) * TAU + (i % 3) * 0.17;
-    const r = 6.5 + ((i * 7) % 5) * 1.4;
-    const g = new THREE.Group();
-    g.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
-    for (let j = 0; j < 3; j++) {
-      const m = new THREE.Mesh(bushGeo, bushMats[(i + j) % 3]);
-      const s = 0.45 + ((i + j) % 3) * 0.15;
-      m.scale.set(s, s * 0.8, s);
-      m.position.set((j - 1) * 0.45, s * 0.6, (j % 2) * 0.2);
-      m.castShadow = true;
-      m.receiveShadow = true;
-      g.add(m);
-    }
-    scene.add(g);
-  }
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#D3E4C3';
+  g.fillRect(0, 0, 256, 256);
+  g.fillStyle = 'rgba(90, 120, 80, 0.16)';
+  g.beginPath(); g.arc(128, 128, 9, 0, Math.PI * 2); g.fill();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(60, 60);
+  tex.anisotropy = 8;
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(60, 64),
+    new THREE.MeshStandardMaterial({ map: tex, roughness: 1, metalness: 0 }),
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
 }
 
 // ---------------- Nhân vật ----------------
@@ -95,7 +102,6 @@ const S = {
   lock: false,              // true = không tự đổi trạng thái (ảnh tĩnh)
   autoMove: null,            // 'walk' | 'run' | 'fly' khi bấm nút (đi vòng tròn)
   manualFace: null,          // biểu cảm người dùng chọn; null = theo trạng thái
-  faceMode: params.get('face3d') === '1' ? '3d' : '2d',   // '2d' vẽ lên | '3d' khối
   snap: null, blendT: 1, BLEND: 0.22,
   face: { ...FACE_DEFAULT },
   blink: { next: 1.5, t: -1 },
@@ -308,8 +314,7 @@ function update(dt) {
       }
     }
   }
-  if (S.faceMode === '2d') plate.draw(f, faceColors);
-  else applyFace(nodes, f);
+  plate.draw(f, faceColors);
 
   // ---- Camera & nắng đi theo nhân vật ----
   if (!FROZEN) {
@@ -351,7 +356,6 @@ function updateHud(faceKey) {
   ui.hudFace.textContent = EXPRESSIONS[faceKey].label + (S.manualFace ? '' : ' (tự động)');
   document.querySelectorAll('[data-state]').forEach((b) => b.classList.toggle('on', b.dataset.state === S.state));
   document.querySelectorAll('[data-face]').forEach((b) => b.classList.toggle('on', b.dataset.face === (S.manualFace || 'auto')));
-  document.querySelectorAll('[data-facemode]').forEach((b) => b.classList.toggle('on', b.dataset.facemode === S.faceMode));
 }
 
 function say(text) {
@@ -388,17 +392,12 @@ function buildUI() {
     inp.value = PALETTE[id];
     inp.oninput = () => { setColors(mats, { [id]: inp.value }); faceColors = currentColors(mats); };
   }
-  for (const b of document.querySelectorAll('[data-facemode]')) {
-    b.onclick = () => { S.faceMode = b.dataset.facemode; setFaceMode(nodes, S.faceMode); lastHud = ''; };
-  }
   ui.demo.onclick = () => (S.demo ? stopDemo() : startDemo());
   document.getElementById('btn-export').onclick = async () => {
     say('Đang bake animation & xuất GLB…');
     try {
       const snapState = { state: S.state, t: S.stateT };
-      setFaceMode(nodes, '3d');
       const bytes = await exportGLB(root, nodes, rest, 'bong.glb');
-      setFaceMode(nodes, S.faceMode);
       S.state = snapState.state; S.stateT = snapState.t;
       say(`Đã xuất bong.glb (${(bytes / 1024).toFixed(0)} KB) – mở bằng Blender / Unity / Godot.`);
     } catch (e) {
@@ -427,7 +426,6 @@ window.addEventListener('resize', resize);
 
 // ---------------- Khởi động ----------------
 buildUI();
-setFaceMode(nodes, S.faceMode);
 resize();
 
 const CAMS = {
@@ -471,4 +469,4 @@ if (FROZEN) {
 }
 
 // Cho phép chọc vào từ console / test
-window.BONG = { S, nodes, rest, mats, setState, trigger, setFlying, applyAction, startDemo, stopDemo, STATES, EXPRESSIONS };
+window.BONG = { S, nodes, rest, mats, setState, trigger, setFlying, applyAction, startDemo, stopDemo, STATES, EXPRESSIONS, render: () => renderer.render(scene, camera) };

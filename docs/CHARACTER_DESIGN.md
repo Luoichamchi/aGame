@@ -7,12 +7,12 @@
 | | |
 |---|---|
 | **Đối tượng** | Trẻ em → hình khối tròn, màu ấm, mặt to, biểu cảm rõ |
-| **Hình dáng** | Gấu béo: thân là MỘT khối tròn ú, đầu dính liền thân (không có khe cổ), tai tròn, mõm kem, mắt to đen bóng, 3 túm lông má, đuôi ngắn có 2 sọc, tay chân ngắn cục cục; tay nghỉ thì đặt lên bụng |
+| **Hình dáng** | Gấu béo: thân là MỘT khối tròn ú, đầu dính liền thân (không có khe cổ), tai tròn, mũi khối, đuôi ngắn đầu đậm, tay chân ngắn cục cục; tay nghỉ thì đặt lên bụng. Nguyên tắc: ít chi tiết, chi tiết nào có thì phải nhìn "xong" |
 | **Điểm nhận dạng** | Một lá to + một lá nhỏ trên đỉnh đầu. Khi bay, lá xoay như cánh quạt |
-| **Phong cách render** | Toon 3 bậc sáng, bóng mềm, không texture → dễ đổi màu, nhẹ cho mobile |
+| **Phong cách render** | "Clay render": vật liệu mờ (MeshStandard, roughness 0.9), ánh sáng môi trường mềm (RoomEnvironment), một nắng ấm + viền sáng lạnh từ sau, bóng VSM mịn, ACES tone mapping. Không toon, không viền |
 | **Chiều cao** | ≈ 1.7 đơn vị (mét) tính cả lá; pivot `Root` ở mặt đất giữa 2 chân |
 | **Hướng nhìn** | +Z (mặt nhìn về +Z, +Y lên trên, +X là bên trái nhân vật) |
-| **Mặt** | Hai kiểu, chuyển bằng nút *Kiểu mặt*: **Vẽ 2D** (mặc định, kiểu Animal Crossing: mắt / mày / miệng / má vẽ thành texture dán sát đầu; mũi, tai, lông má vẫn là khối) và **Khối 3D** (mắt cầu, mí chỏm cầu). Cả hai dùng chung bộ tham số biểu cảm |
+| **Mặt** | Vẽ 2D kiểu Animal Crossing: mõm, mắt, mày, miệng, má vẽ thành texture dán sát đầu (`FacePlate`); chỉ mũi và tai là khối |
 
 ![Các trạng thái](images/states_sheet.png)
 
@@ -23,18 +23,15 @@ Mọi bộ phận là `Object3D` có **tên duy nhất**. Tên này là "hợp �
 ```
 Root                      pivot mặt đất; squash & stretch, nhào lộn (roll), độ cao khi nhảy
 └─ Hips                   (0, 0.45, 0) tâm xoay thân
-   ├─ Body, Belly, BellyDot0..2   khối thân + mảng bụng kem + 3 chấm
-   ├─ Tail                → TailMesh, TailStripe0..1
+   ├─ Body, Belly         khối thân + mảng bụng kem
+   ├─ Tail                → TailMesh, TailTip
    ├─ LegL / LegR         pivot hông  → ShinL/R (capsule), FootL/R (bầu dục)
    ├─ ShoulderL / R       pivot vai (tư thế nghỉ = ôm bụng) → ArmL/R, HandL/R
    └─ Neck                (0, 0.45, 0) tâm gật / nghiêng đầu
       └─ Head             cầu r = 0.52, tâm ở y = 1.15, lún vào thân
          ├─ EarL / EarR   → EarMeshL/R, EarInnerL/R
-         ├─ Muzzle, Nose, FacePlate (chỏm cầu dán texture mặt 2D)
-         ├─ EyeL / EyeR   → EyeballL/R, PupilL/R, ShineL/R, Shine2L/R, LidTopL/R, LidBotL/R
-         ├─ BrowL / BrowR → BrowMeshL/R
-         ├─ CheekL / CheekR, WhiskerL0..2 / WhiskerR0..2
-         ├─ Mouth         → MouthC, MouthL1 → MouthL2, MouthR1 → MouthR2, MouthOpen, Tongue
+         ├─ Nose
+         ├─ FacePlate     chỏm cầu dán texture mặt 2D (mõm, mắt, mày, miệng, má)
          └─ Tuft          → Stem, Prop → LeafA, LeafB
 ```
 
@@ -47,26 +44,17 @@ Kích thước chính (file `character.js`, hàm `buildCharacter`):
 | Body | cầu scale | bán kính (0.60, 0.54, 0.54), tâm y = 0.62 |
 | Head | cầu | r = 0.52, tâm y = 1.15 (lún vào thân ≈ 0.5) |
 | Ear | cầu | r = 0.15 tại (±0.37, 0.40, −0.04) so với tâm đầu |
-| Eyeball / Pupil | cầu | r = 0.105 / 0.085 (mắt gần như đen hết), tại (±0.20, 0.07, 0.42) |
-| Muzzle | cầu scale | (0.27, 0.20, 0.17) tại (0, −0.14, 0.40) |
+| FacePlate | chỏm cầu | r = 0.532, ngang −1.1…1.1 rad, dọc −0.7…0.9 rad quanh +Z |
+| Mắt (vẽ) | elip | tâm (±0.40, 0.14) rad, bán trục 0.185 × 0.21 rad |
 | Arm | capsule | r = 0.10, dài 0.12; Hand r = 0.12 |
 | Shin | capsule | r = 0.11, dài 0.10; Foot (0.14, 0.09, 0.19) |
-| Tail | cầu scale | (0.21, 0.30, 0.17), 2 vòng sọc torus |
+| Tail | cầu scale | (0.20, 0.28, 0.17), đầu đuôi r ≈ 0.10 màu đậm |
 
 Bảng màu mặc định (`PALETTE` trong `character.js`): lông `#C9966F`, bụng / mõm / tai trong `#F1DCC2`, tay chân / mũi / sọc đuôi `#5E3A2E`, lá `#7CCB5A`, má `#F29AA6`, con ngươi `#1E1B22`, miệng `#6E2F34`.
 
-Vị trí gốc của lông mày, con ngươi, chấm sáng, má được lưu trong `userData` lúc dựng; `face.js` cộng dồn lên đó nên đổi hình đầu không phải sửa `face.js`.
-
 ## 3. Biểu cảm
 
-Một biểu cảm = **1 bộ tham số số học** (`face.js`, `EXPRESSIONS`). Hai "bộ vẽ" cùng đọc bộ tham số này:
-
-| Kiểu mặt | File | Cách hoạt động | Ưu / nhược |
-|---|---|---|---|
-| Vẽ 2D (mặc định) | `face2d.js` | Vẽ bằng Canvas 2D (1024×768) rồi dán lên `FacePlate`, chỏm cầu cách mặt đầu 1.2 cm. Toạ độ vẽ là góc trên mặt cầu (radian) nên hình không méo. Vùng mí được xoá trong suốt để lộ đầu thật | Nét sắc, bám sát đầu, biểu cảm kiểu hoạt hình 2D; xuất sang engine = texture (sprite sheet / đổi texture theo biểu cảm) |
-| Khối 3D | `face.js` → `applyFace` | Mọi thứ là position / rotation / scale của mesh | Bake được thành keyframe GLB; nhưng mắt phải nhô khỏi đầu nên dễ bị lồi |
-
-![Hai kiểu mặt](images/face_modes.png)
+Một biểu cảm = **1 bộ tham số số học** (`face.js`, `EXPRESSIONS`). `face2d.js` đọc bộ tham số này và vẽ mặt bằng Canvas 2D (1024×768) rồi dán lên `FacePlate`, chỏm cầu cách mặt đầu 1.2 cm. Toạ độ vẽ là góc trên mặt cầu (radian) nên hình không méo. Vùng mí mắt được xoá trong suốt để lộ đầu thật; tấm mặt không nhận bóng (bóng VSM sẽ in vệt lên vùng trong suốt).
 
 | Tham số | Ý nghĩa | Dải |
 |---|---|---|
@@ -82,13 +70,11 @@ Một biểu cảm = **1 bộ tham số số học** (`face.js`, `EXPRESSIONS`).
 | `wink` | nhắm riêng mắt phải | 0 … 1 |
 | `tongue` | lè lưỡi | 0 … 1 |
 
-Cơ chế đáng chú ý (kiểu 3D):
+Cơ chế vẽ:
 
-- **Mí mắt** = chỏm cầu nửa trước, xoay quanh trục X của mắt. Mép mí trên chạy từ +78° (mở) xuống −15° (nhắm); mí dưới từ −82° lên +25°. Khi mí dưới vượt lên trên tâm, mép mí cong thành hình "∩" → mắt cười.
-- **Miệng** = chuỗi 5 đoạn capsule nối khớp; `curve` bẻ góc từng khớp nên độ dày đường miệng không đổi dù cười hay mếu. Khoang miệng (`MouthOpen`) là elip tối co giãn theo `open`.
-- **Chớp mắt** và **liếc theo camera** là lớp phủ lúc chạy thật (`app.js`), không nằm trong preset.
-
-Kiểu 2D: mí trên / dưới là 2 hình tròn lớn ép vào mắt từ trên và dưới (mép trên "∪", mép dưới "∩" → mắt cười), xoay theo `brow` để tạo mắt giận / buồn; miệng là đường bezier, há ra thì tô khoang miệng và lưỡi.
+- **Mí mắt** = 2 hình tròn lớn ép vào mắt từ trên và dưới. Mép trên cong "∪", mép dưới cong "∩" → nâng mí dưới là ra mắt cười; xoay theo `brow` để tạo mắt giận / buồn. Khi mí khép thì vẽ thêm nét mí mỏng.
+- **Miệng** = đường bezier; `curve` bẻ cong, `open` tô khoang miệng và lưỡi, `tongue` lè lưỡi ra ngoài.
+- **Chớp mắt** và **liếc theo camera** là lớp phủ lúc chạy thật (`app.js`), không nằm trong preset. Canvas chỉ vẽ lại khi tham số đổi.
 
 14 biểu cảm có sẵn:
 
@@ -125,21 +111,20 @@ Squash & stretch dùng `Root.scale = (1/√s, s, 1/√s)` để giữ "thể tí
 Nút **Xuất GLB** (hoặc `exportGLB()` trong `export.js`):
 
 1. Với mỗi trạng thái: lấy mẫu pose 30 fps → `VectorKeyframeTrack` / `QuaternionKeyframeTrack` cho node nào có thay đổi.
-2. Với mỗi biểu cảm: 1 clip `Face_<tên>` giữ tư thế (2 frame) để engine blend bằng layer / additive.
-3. `GLTFExporter` ghi `Root` + 21 clip ra `bong.glb` (~1 MB). Lúc xuất, mặt tạm chuyển sang kiểu 3D để bake; `FacePlate` vẫn được xuất kèm texture mặt hiện tại.
+2. Texture mặt (canvas) được nhúng PNG vào GLB.
+3. `GLTFExporter` ghi `Root` + 7 clip ra `bong.glb`. `FacePlate` xuất kèm texture mặt đang hiển thị; biểu cảm trong engine làm bằng cách đổi texture (sprite sheet).
 
 Lưu ý khi dùng:
 
 - `Jump` có độ cao trong clip (`Root.position.y`); nếu engine dùng physics riêng thì xoá track đó hoặc dùng root-motion.
 - `Roll` xoay `Root` 360°, tốc độ ngang do engine cấp.
-- Material là toon → exporter ghi thành PBR màu phẳng; muốn giữ look toon thì gán shader toon ở engine.
 - Hierarchy xuất ra là nhóm lồng nhau (không có skin / bone). Muốn rig xương chuẩn thì import GLB vào Blender, dùng cây node làm khung tham chiếu.
 
 ## 6. Mở rộng tiếp
 
 | Muốn | Sửa ở |
 |---|---|
-| Thêm biểu cảm | `face.js` → thêm 1 dòng trong `EXPRESSIONS`; UI, demo và cả 2 kiểu mặt tự nhận |
+| Thêm biểu cảm | `face.js` → thêm 1 dòng trong `EXPRESSIONS`; UI và demo tự nhận |
 | Đổi nét vẽ mặt 2D | `face2d.js` → `drawFace` (vị trí, cỡ mắt, kiểu miệng…) |
 | Thêm trạng thái (vd. bơi, ngồi) | `poses.js` → thêm vào `STATES` + hàm trong `POSES`; `app.js` thêm phím nếu cần |
 | Đổi tỉ lệ / màu | `character.js` (`buildCharacter`, `PALETTE`) |
@@ -147,4 +132,4 @@ Lưu ý khi dùng:
 | Chụp lại ảnh tài liệu | `npm i playwright-core` rồi `node tools/screenshot.mjs docs/images` (cần server tĩnh ở cổng 8765) |
 
 Tham số URL để xem tư thế tĩnh (dùng khi chỉnh số liệu): `index.html?state=jump&t=0.5&face=wow&cam=tq&lift=1&ui=0`
-(`cam`: front / side / tq / face / back; `lift`: nâng camera; `face3d=1`: xem kiểu mặt khối).
+(`cam`: front / side / tq / face / back; `lift`: nâng camera).
