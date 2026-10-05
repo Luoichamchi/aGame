@@ -36,10 +36,11 @@ export const POSES = {
     n.Hips.position.y += 0.01 * b;
     n.Neck.rotation.z = 0.04 * Math.sin(t * 0.9);
     n.Neck.rotation.x = 0.02 * Math.sin(t * 0.7 + 1);
-    n.ShoulderL.rotation.x = 0.06 * Math.sin(t * 1.3);
-    n.ShoulderR.rotation.x = 0.06 * Math.sin(t * 1.3 + 0.4);
+    n.ShoulderL.rotation.x += 0.05 * Math.sin(t * 1.3);
+    n.ShoulderR.rotation.x += 0.05 * Math.sin(t * 1.3 + 0.4);
     n.Tuft.rotation.x = -0.15 + 0.1 * Math.sin(t * 2);
     n.Tuft.rotation.z = 0.08 * Math.sin(t * 1.4);
+    n.Tail.rotation.z = 0.12 * Math.sin(t * 2.6);
   },
 
   walk(n, t) {
@@ -49,8 +50,8 @@ export const POSES = {
     n.LegR.rotation.x = -0.65 * s;
     n.FootL.rotation.x = -0.25 * s;
     n.FootR.rotation.x = 0.25 * s;
-    n.ShoulderL.rotation.x = -0.55 * s;
-    n.ShoulderR.rotation.x = 0.55 * s;
+    n.ShoulderL.rotation.set(-0.55 * s, 0, 0.35);
+    n.ShoulderR.rotation.set(0.55 * s, 0, -0.35);
     n.Hips.position.y += 0.035 * (0.5 - 0.5 * Math.cos(2 * th));
     n.Hips.rotation.x = 0.08;
     n.Hips.rotation.z = 0.06 * s;
@@ -58,10 +59,12 @@ export const POSES = {
     n.Neck.rotation.x = -0.06;
     n.Neck.rotation.z = -0.05 * s;
     n.Tuft.rotation.x = -0.15 + 0.15 * Math.sin(2 * th + 1);
+    n.Tail.rotation.z = 0.25 * s;
     squash(n, 1 + 0.03 * Math.cos(2 * th));
   },
 
   run(n, t) {
+    n.ShoulderL.rotation.y = n.ShoulderR.rotation.y = 0;
     const th = TAU * 3.2 * t;
     const s = Math.sin(th);
     n.LegL.rotation.x = 1.0 * s;
@@ -85,6 +88,7 @@ export const POSES = {
   // Nhảy: chuẩn bị (ngồi thụp) → bật lên (kéo dài) → bay → tiếp đất (bẹp xuống)
   jump(n, t) {
     const A = 0.16, L = 0.84;
+    n.ShoulderL.rotation.y = n.ShoulderR.rotation.y = 0;
     if (t < A) {
       const k = sm(t / A);
       squash(n, 1 - 0.22 * k);
@@ -124,6 +128,7 @@ export const POSES = {
 
   // Lăn: cuộn tròn rồi nhào lộn 360° quanh trục X (tâm quay = tâm thân, không phải mặt đất)
   roll(n, t) {
+    n.ShoulderL.rotation.y = n.ShoulderR.rotation.y = 0;
     const D = STATES.roll.duration;
     const p = clamp01(t / D);
     const tuck = sm(p / 0.2) * sm((1 - p) / 0.2);
@@ -146,6 +151,7 @@ export const POSES = {
 
   // Trượt: ngả người ra sau, một chân duỗi trước, tay vung sau
   slide(n, t) {
+    n.ShoulderL.rotation.y = n.ShoulderR.rotation.y = 0;
     const D = STATES.slide.duration;
     const p = clamp01(t / D);
     const k = sm(p / 0.15) * sm((1 - p) / 0.25);
@@ -165,6 +171,7 @@ export const POSES = {
 
   // Bay: nằm sấp kiểu siêu nhân, tay dang như cánh, chồi lá xoay như cánh quạt
   fly(n, t) {
+    n.ShoulderL.rotation.y = n.ShoulderR.rotation.y = 0;
     const bob = Math.sin(TAU * t / 1.25);
     n.Root.position.y = 0.12 * bob;
     n.Hips.rotation.x = 1.3 + 0.05 * bob;

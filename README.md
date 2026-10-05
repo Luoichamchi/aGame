@@ -1,6 +1,6 @@
 # aGame
 
-Game cho trẻ em (đang thiết kế). Hiện tại repo chứa **nhân vật 3D "Bông"**: prototype chạy ngay trong trình duyệt, có đủ 7 trạng thái hoạt động và 14 biểu cảm, xuất được file GLB để dùng trong Unity / Godot / Blender.
+Game cho trẻ em (đang thiết kế). Hiện tại repo chứa **nhân vật 3D "Bông"** (gấu béo): prototype chạy ngay trong trình duyệt, có đủ 7 trạng thái hoạt động và 14 biểu cảm, xuất được file GLB để dùng trong Unity / Godot / Blender.
 
 ![Bông](docs/images/hero.png)
 

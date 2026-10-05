@@ -1,4 +1,4 @@
-# Thiết kế nhân vật "Bông"
+# Thiết kế nhân vật "Bông" (gấu béo)
 
 > Tên tạm. Đổi tên ở `character/index.html` (tiêu đề) và `character/js/app.js` (tên file GLB xuất ra).
 
@@ -7,11 +7,12 @@
 | | |
 |---|---|
 | **Đối tượng** | Trẻ em → hình khối tròn, màu ấm, mặt to, biểu cảm rõ |
-| **Hình dáng** | 2 khối cầu chồng nhau (đầu ≈ 45% chiều cao, tỉ lệ *chibi*), tay chân ngắn cục cục, không khuỷu / đầu gối |
-| **Điểm nhận dạng** | Chồi lá 2 lá trên đỉnh đầu. Khi bay, chồi lá xoay như cánh quạt |
+| **Hình dáng** | Gấu béo: thân là MỘT khối tròn ú, đầu dính liền thân (không có khe cổ), tai tròn, mõm kem, mắt to đen bóng, 3 túm lông má, đuôi ngắn có 2 sọc, tay chân ngắn cục cục; tay nghỉ thì đặt lên bụng |
+| **Điểm nhận dạng** | Một lá to + một lá nhỏ trên đỉnh đầu. Khi bay, lá xoay như cánh quạt |
 | **Phong cách render** | Toon 3 bậc sáng, bóng mềm, không texture → dễ đổi màu, nhẹ cho mobile |
-| **Chiều cao** | ≈ 1.95 đơn vị (mét) tính cả chồi lá; pivot `Root` ở mặt đất giữa 2 chân |
+| **Chiều cao** | ≈ 1.7 đơn vị (mét) tính cả lá; pivot `Root` ở mặt đất giữa 2 chân |
 | **Hướng nhìn** | +Z (mặt nhìn về +Z, +Y lên trên, +X là bên trái nhân vật) |
+| **Biểu cảm** | Hệ 14 biểu cảm giữ nguyên cơ chế, **chưa tinh chỉnh lại cho đầu gấu** (làm sau cùng) |
 
 ![Các trạng thái](images/states_sheet.png)
 
@@ -21,15 +22,18 @@ Mọi bộ phận là `Object3D` có **tên duy nhất**. Tên này là "hợp �
 
 ```
 Root                      pivot mặt đất; squash & stretch, nhào lộn (roll), độ cao khi nhảy
-└─ Hips                   (0, 0.40, 0) tâm xoay thân
-   ├─ Body, Belly         elip thân + mảng bụng sáng
-   ├─ LegL / LegR         pivot hông  → ShinL/R (capsule), FootL/R (cầu dẹt)
-   ├─ ShoulderL / R       pivot vai   → ArmL/R (capsule), HandL/R (cầu)
-   └─ Neck                (0, 0.62, 0) tâm gật / nghiêng đầu
-      └─ Head             cầu r = 0.5, tâm ở y = 1.45
-         ├─ EyeL / EyeR   → EyeballL/R, PupilL/R, ShineL/R, LidTopL/R, LidBotL/R
+└─ Hips                   (0, 0.45, 0) tâm xoay thân
+   ├─ Body, Belly, BellyDot0..2   khối thân + mảng bụng kem + 3 chấm
+   ├─ Tail                → TailMesh, TailStripe0..1
+   ├─ LegL / LegR         pivot hông  → ShinL/R (capsule), FootL/R (bầu dục)
+   ├─ ShoulderL / R       pivot vai (tư thế nghỉ = ôm bụng) → ArmL/R, HandL/R
+   └─ Neck                (0, 0.45, 0) tâm gật / nghiêng đầu
+      └─ Head             cầu r = 0.52, tâm ở y = 1.15, lún vào thân
+         ├─ EarL / EarR   → EarMeshL/R, EarInnerL/R
+         ├─ Muzzle, Nose
+         ├─ EyeL / EyeR   → EyeballL/R, PupilL/R, ShineL/R, Shine2L/R, LidTopL/R, LidBotL/R
          ├─ BrowL / BrowR → BrowMeshL/R
-         ├─ CheekL / CheekR
+         ├─ CheekL / CheekR, WhiskerL0..2 / WhiskerR0..2
          ├─ Mouth         → MouthC, MouthL1 → MouthL2, MouthR1 → MouthR2, MouthOpen, Tongue
          └─ Tuft          → Stem, Prop → LeafA, LeafB
 ```
@@ -40,13 +44,18 @@ Kích thước chính (file `character.js`, hàm `buildCharacter`):
 
 | Bộ phận | Hình | Kích thước |
 |---|---|---|
-| Body | cầu scale | bán kính (0.42, 0.40, 0.38), tâm y = 0.72 |
-| Head | cầu | r = 0.50, tâm y = 1.45 |
-| Eyeball | cầu | r = 0.11, tại (±0.19, 0.07, 0.42) so với tâm đầu |
-| Arm | capsule | r = 0.085, dài 0.16; Hand r = 0.105 |
-| Shin | capsule | r = 0.10, dài 0.16; Foot (0.13, 0.08, 0.16) |
+| Body | cầu scale | bán kính (0.60, 0.54, 0.54), tâm y = 0.62 |
+| Head | cầu | r = 0.52, tâm y = 1.15 (lún vào thân ≈ 0.5) |
+| Ear | cầu | r = 0.15 tại (±0.37, 0.40, −0.04) so với tâm đầu |
+| Eyeball / Pupil | cầu | r = 0.105 / 0.085 (mắt gần như đen hết), tại (±0.20, 0.07, 0.42) |
+| Muzzle | cầu scale | (0.27, 0.20, 0.17) tại (0, −0.14, 0.40) |
+| Arm | capsule | r = 0.10, dài 0.12; Hand r = 0.12 |
+| Shin | capsule | r = 0.11, dài 0.10; Foot (0.14, 0.09, 0.19) |
+| Tail | cầu scale | (0.21, 0.30, 0.17), 2 vòng sọc torus |
 
-Bảng màu mặc định (`PALETTE` trong `character.js`): thân `#FFC247`, bụng `#FFF3D1`, tay chân `#FF9A3C`, lá `#6CCB7A`, má `#FF8FA8`, con ngươi `#2A2C3E`, miệng `#7A2E3B`.
+Bảng màu mặc định (`PALETTE` trong `character.js`): lông `#C9966F`, bụng / mõm / tai trong `#F1DCC2`, tay chân / mũi / sọc đuôi `#5E3A2E`, lá `#7CCB5A`, má `#F29AA6`, con ngươi `#1E1B22`, miệng `#6E2F34`.
+
+Vị trí gốc của lông mày, con ngươi, chấm sáng, má được lưu trong `userData` lúc dựng; `face.js` cộng dồn lên đó nên đổi hình đầu không phải sửa `face.js`.
 
 ## 3. Biểu cảm
 
@@ -90,7 +99,7 @@ Mỗi trạng thái có biểu cảm mặc định (cột `face` trong `STATES`)
 | `jump` Nhảy | 1 lần | 1.0 s | giữ đà | 0–16%: thụp xuống (squash 0.78) → 16–84%: bay parabol cao 1.3, kéo dài 1.25 lúc bật, tay giơ, chân co → 84–100%: tiếp đất bẹp 0.75 |
 | `roll` Lăn | 1 lần | 0.8 s | 4.5 → 2.7 | cuộn tròn (tay chân ôm), `Root` xoay 360° quanh trục X với tâm quay = tâm thân |
 | `slide` Trượt | 1 lần | 1.0 s | 5.5 → 1.0 | ngả sau 43°, hạ hông, 1 chân duỗi trước, tay vung sau, lá bạt về sau |
-| `fly` Bay | lặp | 1.25 s | 3.6 | thân nằm ngang (ngả trước 75°), tay dang vỗ nhẹ, chồi lá xoay 40 rad/s, nhấp nhô 12 cm |
+| `fly` Bay | lặp | 1.25 s | 3.6 | thân nằm ngang (ngả trước 75°), tay dang vỗ nhẹ, lá xoay 40 rad/s, nhấp nhô 12 cm |
 
 Quy tắc chuyển trạng thái (`app.js`):
 

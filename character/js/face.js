@@ -57,20 +57,22 @@ export function applyFace(n, f) {
 
     const brow = n['Brow' + side];
     brow.rotation.z = sg * f.brow * 0.7;
-    brow.position.y = 0.25 + f.browUp - Math.abs(f.brow) * 0.02;
+    brow.position.y = brow.userData.baseY + f.browUp - Math.abs(f.brow) * 0.02;
 
     const pupil = n['Pupil' + side];
     const ps = Math.max(0.2, f.pupil);
     pupil.scale.setScalar(ps);
-    pupil.position.z = 0.075 + (1 - ps) * 0.045;   // con ngươi nhỏ thì đẩy ra để không lún vào tròng
+    pupil.position.z = pupil.userData.baseZ + (1 - ps) * 0.045;   // con ngươi nhỏ thì đẩy ra để không lún vào tròng
     pupil.position.x = f.lookX * 0.035;
     pupil.position.y = f.lookY * 0.03;
-    n['Shine' + side].position.x = 0.022 * sg + f.lookX * 0.03;
-    n['Shine' + side].position.y = 0.03 + f.lookY * 0.025;
+    const sb = n['Shine' + side].userData.base;
+    n['Shine' + side].position.x = sb.x + f.lookX * 0.03;
+    n['Shine' + side].position.y = sb.y + f.lookY * 0.025;
 
     const cheek = n['Cheek' + side];
     const b = 0.001 + Math.max(0, f.blush);
-    cheek.scale.set(0.07 * b, 0.05 * b, 0.02 * Math.min(1, b));
+    const cb = cheek.userData.base;
+    cheek.scale.set(cb.x * b, cb.y * b, cb.z * Math.min(1, b));
   }
 
   // Miệng
@@ -81,8 +83,8 @@ export function applyFace(n, f) {
   n.MouthR1.rotation.z = a;
   n.MouthR2.rotation.z = a;
   const op = clamp(f.open, 0, 1);
-  n.MouthOpen.scale.set(0.001 + 0.06 * Math.min(1, op * 4), 0.001 + op * 0.07, 0.001 + 0.03 * Math.min(1, op * 4));
-  n.MouthOpen.position.y = -0.015 - op * 0.04;
+  n.MouthOpen.scale.set(0.001 + 0.05 * Math.min(1, op * 4), 0.001 + op * 0.055, 0.001 + 0.03 * Math.min(1, op * 4));
+  n.MouthOpen.position.y = -0.015 - op * 0.03;
   const tg = clamp(f.tongue, 0, 1);
   n.Tongue.scale.set(0.001 + 0.032 * tg, 0.001 + 0.018 * tg, 0.001 + 0.03 * tg);
   n.Tongue.position.y = -0.03 - op * 0.045 - tg * 0.02;

@@ -424,7 +424,7 @@ const CAMS = {
   front: { pos: [0, 1.5, 4.4], target: [0, 0.95, 0] },
   side:  { pos: [4.4, 1.5, 0], target: [0, 0.95, 0] },
   tq:    { pos: [3.1, 2.1, 3.4], target: [0, 0.9, 0] },
-  face:  { pos: [0, 1.5, 2.3], target: [0, 1.42, 0] },
+  face:  { pos: [0, 1.25, 2.3], target: [0, 1.12, 0] },
   back:  { pos: [0, 1.6, -4.4], target: [0, 0.95, 0] },
 };
 
