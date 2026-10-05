@@ -402,6 +402,10 @@ function buildUI() {
     controls.target.set(mover.position.x, 0.9, mover.position.z);
   };
   document.getElementById('btn-toggle').onclick = () => ui.panel.classList.toggle('collapsed');
+  if (window.__NO_DOWNLOAD__) {        // bản xem thử online: trình xem chặn tải file
+    document.getElementById('btn-export').hidden = true;
+    document.getElementById('export-note').hidden = false;
+  }
 }
 
 function resize() {
