@@ -50,8 +50,8 @@ export const POSES = {
     n.LegR.rotation.x = -0.65 * s;
     n.FootL.rotation.x = -0.25 * s;
     n.FootR.rotation.x = 0.25 * s;
-    n.ShoulderL.rotation.set(-0.55 * s, 0, 0.35);
-    n.ShoulderR.rotation.set(0.55 * s, 0, -0.35);
+    n.ShoulderL.rotation.set(-0.55 * s, 0, 0.7);
+    n.ShoulderR.rotation.set(0.55 * s, 0, -0.7);
     n.Hips.position.y += 0.035 * (0.5 - 0.5 * Math.cos(2 * th));
     n.Hips.rotation.x = 0.08;
     n.Hips.rotation.z = 0.06 * s;
@@ -73,8 +73,8 @@ export const POSES = {
     n.FootR.rotation.x = 0.4 * s;
     n.ShoulderL.rotation.x = -0.9 * s;
     n.ShoulderR.rotation.x = 0.9 * s;
-    n.ShoulderL.rotation.z = 0.6;
-    n.ShoulderR.rotation.z = -0.6;
+    n.ShoulderL.rotation.z = 0.85;
+    n.ShoulderR.rotation.z = -0.85;
     n.Hips.position.y += 0.07 * (0.5 - 0.5 * Math.cos(2 * th));
     n.Hips.rotation.x = 0.30;
     n.Hips.rotation.z = 0.05 * s;
@@ -102,11 +102,9 @@ export const POSES = {
       n.Root.position.y = 1.3 * 4 * p * (1 - p);
       const st = Math.pow(Math.abs(Math.cos(Math.PI * p)), 1.5) * (p < 0.5 ? 0.25 : 0.12);
       squash(n, 1 + st);
-      const k = sm(p / 0.25);
-      n.ShoulderL.rotation.x = lerp(0.9, -2.7, k);
-      n.ShoulderR.rotation.x = lerp(0.9, -2.7, k);
-      n.ShoulderL.rotation.z = 0.35 + 0.45 * k;
-      n.ShoulderR.rotation.z = -(0.35 + 0.45 * k);
+      const k = sm(p / 0.25);                              // tay giơ lên theo chiều ngang (không che mặt)
+      n.ShoulderL.rotation.set(lerp(0.9, -0.3, k), 0, lerp(1.0, 2.5, k));
+      n.ShoulderR.rotation.set(lerp(0.9, -0.3, k), 0, -lerp(1.0, 2.5, k));
       const tuck = Math.sin(Math.PI * p);
       n.LegL.rotation.x = -1.0 * tuck;
       n.LegR.rotation.x = -1.0 * tuck;
@@ -174,16 +172,16 @@ export const POSES = {
     n.ShoulderL.rotation.y = n.ShoulderR.rotation.y = 0;
     const bob = Math.sin(TAU * t / 1.25);
     n.Root.position.y = 0.12 * bob;
-    n.Hips.rotation.x = 1.3 + 0.05 * bob;
+    n.Hips.rotation.x = 0.7 + 0.05 * bob;
     n.Hips.position.y += 0.3;
     const flap = Math.sin(TAU * 2 * t);
-    n.ShoulderL.rotation.z = 1.45 + 0.25 * flap;
-    n.ShoulderR.rotation.z = -(1.45 + 0.25 * flap);
+    n.ShoulderL.rotation.z = 1.7 + 0.3 * flap;
+    n.ShoulderR.rotation.z = -(1.7 + 0.3 * flap);
     n.ShoulderL.rotation.x = -0.2;
     n.ShoulderR.rotation.x = -0.2;
     n.LegL.rotation.x = 0.15 + 0.12 * Math.sin(TAU * 2 * t);
     n.LegR.rotation.x = 0.15 + 0.12 * Math.sin(TAU * 2 * t + 1);
-    n.Neck.rotation.x = -1.05;
+    n.Neck.rotation.x = -0.3;
     n.Tuft.rotation.x = 0;
     n.Prop.rotation.y = t * 40;
     squash(n, 1 + 0.03 * bob);

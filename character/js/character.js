@@ -5,11 +5,11 @@ import * as THREE from 'three';
 import { createFacePlate } from './face2d.js';
 
 export const PALETTE = {
-  body:   '#C9966F', // lông chính (nâu mật ong)
-  belly:  '#F1DCC2', // bụng / mõm / tai trong (kem)
-  accent: '#5E3A2E', // tay, chân, đuôi sọc, mũi (nâu đậm)
-  leaf:   '#7CCB5A', // lá trên đầu
-  cheek:  '#F29AA6', // má hồng
+  body:   '#EBA863', // lông chính (mật ong sáng)
+  belly:  '#FFF1DB', // bụng / mõm / tai trong (kem)
+  accent: '#6E4530', // tay, chân, đầu đuôi, mũi (nâu)
+  leaf:   '#6BD45E', // lá trên đầu
+  cheek:  '#FF9DB4', // má hồng
   eye:    '#FFFFFF',
   pupil:  '#1E1B22',
   mouth:  '#6E2F34',
@@ -74,36 +74,57 @@ export function buildCharacter() {
   nodes.Root = root;
 
   const hips = G('Hips', root, 0, 0.45, 0);
+  const HEAD_R = 0.52;
+  const HEAD_Y = 1.15;                 // tâm đầu (world)
 
-  // Thân: một khối tròn ú, bụng kem phía trước, 3 chấm bụng
-  E('Body', hips, mats.body, 0, 0.17, 0, 0.60, 0.54, 0.54);
-  E('Belly', hips, mats.belly, 0, 0.06, 0.40, 0.36, 0.33, 0.18);
+  // Thân + đầu = MỘT khối trứng xoay tròn. Nửa trên là mặt cầu bán kính HEAD_R quanh tâm đầu,
+  // phía dưới phình ra thành bụng rồi thu lại ở đáy. Profile (r, y) tính theo world, đi từ dưới lên.
+  let profile;
+  {
+    const top = [];
+    for (let i = 0; i <= 12; i++) {
+      const a = Math.PI / 2 - (i / 12) * (Math.PI / 2);
+      top.push(new THREE.Vector3(HEAD_R * Math.cos(a), HEAD_Y + HEAD_R * Math.sin(a), 0));
+    }
+    const belly = [[0.565, 0.98], [0.61, 0.78], [0.62, 0.58], [0.585, 0.38], [0.49, 0.20], [0.32, 0.09], [0.0, 0.06]];
+    const curve = new THREE.CatmullRomCurve3([top[top.length - 1], ...belly.map(([r, y]) => new THREE.Vector3(r, y, 0))], false, 'centripetal');
+    const lower = curve.getPoints(60).slice(1);
+    profile = [...top, ...lower].reverse().map((v) => new THREE.Vector2(v.x, v.y));
+    M('Body', hips, new THREE.LatheGeometry(profile.map((v) => new THREE.Vector2(v.x, v.y - 0.45)), 96), mats.body);
+  }
+  E('Belly', hips, mats.belly, 0, 0.08, 0.44, 0.34, 0.29, 0.20);
 
   // Đuôi: một bầu dục tròn trịa phía sau, đầu đuôi màu đậm
-  const tail = G('Tail', hips, 0, 0.12, -0.50);
+  const tail = G('Tail', hips, 0, 0.08, -0.50);
   tail.rotation.x = 0.35;
-  E('TailMesh', tail, mats.body, 0, 0.22, 0, 0.20, 0.28, 0.17);
-  E('TailTip', tail, mats.accent, 0, 0.42, 0, 0.11, 0.10, 0.10);
+  E('TailMesh', tail, mats.body, 0, 0.22, 0, 0.19, 0.26, 0.16);
+  E('TailTip', tail, mats.accent, 0, 0.40, 0, 0.10, 0.09, 0.09);
 
   // Tay + chân: đối xứng L (+X) / R (-X)
   for (const [side, sg] of [['L', 1], ['R', -1]]) {
-    // Chân: ngắn, lòi ra phía trước dưới bụng
-    const leg = G('Leg' + side, hips, 0.22 * sg, -0.02, 0.14);
-    M('Shin' + side, leg, capsule(0.11, 0.10), mats.accent, 0, -0.22, 0);
-    E('Foot' + side, leg, mats.accent, 0, -0.35, 0.09, 0.14, 0.09, 0.19);
+    // Chân: rất ngắn, bàn chân chỉ lòi ra dưới thân
+    const leg = G('Leg' + side, hips, 0.21 * sg, -0.10, 0.03);
+    M('Shin' + side, leg, capsule(0.10, 0.08), mats.accent, 0, -0.16, 0);
+    E('Foot' + side, leg, mats.accent, 0, -0.27, 0.08, 0.14, 0.08, 0.17);
 
-    // Tay: ngắn, mặc định đặt lên bụng (hướng tay = từ vai tới điểm trên bụng)
-    const sh = G('Shoulder' + side, hips, 0.42 * sg, 0.26, 0.30);
-    const dir = new THREE.Vector3(-0.14 * sg, -0.11, 0.22).normalize();
-    sh.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
-    M('Arm' + side, sh, capsule(0.10, 0.12), mats.accent, 0, -0.12, 0);
-    M('Hand' + side, sh, sphere(0.12), mats.accent, 0, -0.26, 0);
+    // Tay: dang ra hai bên, hơi chúc xuống
+    const sh = G('Shoulder' + side, hips, 0.52 * sg, 0.42, 0.12);
+    sh.rotation.z = 1.0 * sg;
+    sh.rotation.x = -0.15;
+    M('Arm' + side, sh, capsule(0.095, 0.14), mats.accent, 0, -0.12, 0);
+    M('Hand' + side, sh, sphere(0.115), mats.accent, 0, -0.27, 0);
   }
 
-  // Cổ → Đầu dính liền thân (không có khe cổ)
-  const neck = G('Neck', hips, 0, 0.45, 0);
-  const head = M('Head', neck, sphere(0.52, 48, 32), mats.body, 0, 0.25, 0);
-  // Đầu world: tâm y = 1.15, đỉnh 1.67
+  // Mặt + mũi gắn CỐ ĐỊNH vào thân (một khối, kiểu Fall Guys). FaceAnchor đặt ở tâm đầu.
+  const faceAnchor = G('FaceAnchor', hips, 0, HEAD_Y - 0.45, 0);
+  E('Nose', faceAnchor, mats.accent, 0, 0.0, 0.545, 0.075, 0.052, 0.05);
+  const plate = createFacePlate(profile.map((v) => new THREE.Vector2(v.x, v.y - HEAD_Y)), HEAD_R);
+  faceAnchor.add(plate.mesh);
+  nodes.FacePlate = plate.mesh;
+
+  // Cổ = pivot ở TÂM đầu: chỉ tai và lá xoay khi "gật / nghiêng đầu"
+  const neck = G('Neck', hips, 0, HEAD_Y - 0.45, 0);
+  const head = G('Head', neck, 0, 0, 0);
 
   // Tai tròn + tai trong kem
   for (const [side, sg] of [['L', 1], ['R', -1]]) {
@@ -111,9 +132,6 @@ export function buildCharacter() {
     M('EarMesh' + side, ear, sphere(0.15), mats.body);
     E('EarInner' + side, ear, mats.belly, 0, 0, 0.08, 0.085, 0.085, 0.05);
   }
-
-  // Mũi (khối). Mõm, mắt, mày, miệng, má được VẼ 2D trên FacePlate (face2d.js)
-  E('Nose', head, mats.accent, 0, -0.06, 0.545, 0.075, 0.052, 0.05);
 
   // Lá trên đầu: một lá to + một lá nhỏ; khi bay thì "Prop" xoay như cánh quạt
   const tuft = G('Tuft', head, 0, 0.50, 0.02);
@@ -125,10 +143,6 @@ export function buildCharacter() {
   const leafB = E('LeafB', prop, mats.leaf, -0.07, 0.0, 0, 0.08, 0.02, 0.045);
   leafB.rotation.z = -0.3;
 
-  // Mặt 2D "vẽ lên": chỏm cầu dán texture canvas, ôm sát đầu (face2d.js)
-  const plate = createFacePlate(0.52);
-  head.add(plate.mesh);
-  nodes.FacePlate = plate.mesh;
 
   // ---------- Lưu tư thế nghỉ ----------
   const rest = {};

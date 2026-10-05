@@ -1,14 +1,19 @@
-// face2d.js — Mặt "vẽ lên": vẽ mắt / mày / miệng / má bằng Canvas 2D rồi dán thành texture
-// lên một chỏm cầu (FacePlate) ôm sát phía trước đầu. Dùng CHUNG bộ tham số biểu cảm của face.js.
+// face2d.js — Mặt "vẽ lên": vẽ mõm / mắt / mày / miệng / má bằng Canvas 2D rồi dán thành texture
+// lên tấm FacePlate ôm sát phía trước thân. Dùng CHUNG bộ tham số biểu cảm của face.js.
 //
-// Toạ độ vẽ = góc trên mặt cầu (radian): x ngang (−1.1 … 1.1), y dọc (−0.7 … 0.9), gốc ở giữa mặt.
+// Toạ độ vẽ = góc quanh tâm đầu (radian): x ngang (−1.1 … 1.1), y dọc (−0.7 … 0.9) tính theo chiều dài cung / bán kính đầu.
 import * as THREE from 'three';
 
 export const FACE2D = { W: 1024, H: 768, X0: -1.1, X1: 1.1, Y0: -0.7, Y1: 0.9 };
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 
-/** Tạo chỏm cầu + canvas. headRadius = bán kính đầu. Trả về { mesh, draw(f, colors), texture }. */
-export function createFacePlate(headRadius) {
+/**
+ * Tạo tấm mặt + canvas. `profile` = mảng điểm (r, y) của thân, toạ độ gốc ở TÂM ĐẦU, đi từ dưới lên;
+ * headRadius để quy đổi chiều dài cung → "góc" (toạ độ vẽ). Tấm mặt = lathe một phần, lệch ra 1.2 cm
+ * khỏi thân nên bám sát từ trán xuống mõm dù thân dưới phình to hơn cầu.
+ * Trả về { mesh, draw(f, colors), texture }.
+ */
+export function createFacePlate(profile, headRadius) {
   const canvas = document.createElement('canvas');
   canvas.width = FACE2D.W;
   canvas.height = FACE2D.H;
@@ -17,12 +22,27 @@ export function createFacePlate(headRadius) {
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
 
-  const phiLen = FACE2D.X1 - FACE2D.X0;
-  const thetaLen = FACE2D.Y1 - FACE2D.Y0;
-  // Chỏm cầu: phi quanh +Z (phi = π/2 là chính diện), theta tính từ cực +Y
-  const geo = new THREE.SphereGeometry(headRadius + 0.012, 64, 48,
-    Math.PI / 2 + FACE2D.X0, phiLen,
-    Math.PI / 2 - FACE2D.Y1, thetaLen);
+  // Chiều dài cung tính từ xích đạo (y = 0) → "góc" a = s / headRadius
+  const pts = profile.map((v) => new THREE.Vector2(v.x, v.y));
+  const eq = pts.reduce((best, v, i) => (Math.abs(v.y) < Math.abs(pts[best].y) ? i : best), 0);
+  const arc = new Array(pts.length).fill(0);
+  for (let i = eq + 1; i < pts.length; i++) arc[i] = arc[i - 1] + pts[i].distanceTo(pts[i - 1]);
+  for (let i = eq - 1; i >= 0; i--) arc[i] = arc[i + 1] - pts[i].distanceTo(pts[i + 1]);
+  const at = (a) => {                                   // nội suy điểm + pháp tuyến tại góc a
+    const sTarget = a * headRadius;
+    let i = 0;
+    while (i < pts.length - 2 && arc[i + 1] < sTarget) i++;
+    const t = clamp((sTarget - arc[i]) / (arc[i + 1] - arc[i] || 1), 0, 1);
+    const pnt = pts[i].clone().lerp(pts[i + 1], t);
+    const tan = pts[i + 1].clone().sub(pts[i]).normalize();
+    const nrm = new THREE.Vector2(tan.y, -tan.x);        // hướng ra ngoài
+    return pnt.addScaledVector(nrm, 0.012);
+  };
+  const N = 48;
+  const platePts = [];
+  for (let j = 0; j < N; j++) platePts.push(at(FACE2D.Y0 + (j / (N - 1)) * (FACE2D.Y1 - FACE2D.Y0)));
+  const geo = new THREE.LatheGeometry(platePts, 64, FACE2D.X0, FACE2D.X1 - FACE2D.X0);
+
   // alphaTest loại pixel trong suốt; không nhận bóng vì bóng VSM sẽ in vệt lên vùng trong suốt
   const mat = new THREE.MeshStandardMaterial({ map: texture, transparent: true, alphaTest: 0.02, depthWrite: false, roughness: 0.9, metalness: 0 });
   const mesh = new THREE.Mesh(geo, mat);
@@ -56,7 +76,7 @@ export function drawFace(ctx, f, c) {
 
   // Mõm kem (vẽ phẳng; mũi vẫn là khối 3D)
   ctx.fillStyle = c.belly;
-  ell(0, -0.33, 0.50, 0.37);
+  ell(0, -0.24, 0.50, 0.35);
   ctx.fill();
 
   // Má hồng
@@ -64,12 +84,12 @@ export function drawFace(ctx, f, c) {
   if (b > 0.01) {
     ctx.fillStyle = c.cheek;
     ctx.globalAlpha = 0.85;
-    for (const sg of [1, -1]) { ell(sg * 0.64, -0.20, 0.11 * b, 0.08 * b); ctx.fill(); }
+    for (const sg of [1, -1]) { ell(sg * 0.64, -0.12, 0.11 * b, 0.08 * b); ctx.fill(); }
     ctx.globalAlpha = 1;
   }
 
   // Mắt
-  const ex = 0.40, ey = 0.14, rx = 0.185, ry = 0.21;
+  const ex = 0.40, ey = 0.21, rx = 0.185, ry = 0.21;
   for (const sg of [1, -1]) {
     const cx = sg * ex, cy = ey;
     const extra = sg < 0 ? f.wink : 0;              // nháy mắt phải (−X)
@@ -125,7 +145,7 @@ export function drawFace(ctx, f, c) {
   ctx.strokeStyle = c.accent;
   ctx.lineWidth = 0.04 * sx;
   for (const sg of [1, -1]) {
-    const bx = sg * ex, by = 0.43 + f.browUp * 1.8 - Math.abs(f.brow) * 0.02;
+    const bx = sg * ex, by = 0.50 + f.browUp * 1.8 - Math.abs(f.brow) * 0.02;
     const ang = -sg * f.brow * 0.6;
     const L = 0.11;
     ctx.beginPath();
@@ -135,7 +155,7 @@ export function drawFace(ctx, f, c) {
   }
 
   // Miệng: đường môi trên (bezier), khoang miệng mở, lưỡi
-  const my = -0.42;
+  const my = -0.33;
   const w = 0.28 * clamp(f.width, 0.4, 1.4);
   const k = f.curve * 0.11;
   const op = clamp(f.open, 0, 1);

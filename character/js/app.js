@@ -29,14 +29,14 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 
-const SKY = '#E4EEF6';
+const SKY = '#EAF4FB';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(SKY);
 scene.fog = new THREE.Fog(SKY, 16, 40);
 {
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environmentIntensity = 0.55;
+  scene.environmentIntensity = 0.65;
   pmrem.dispose();
 }
 
@@ -70,7 +70,7 @@ scene.add(rim);
   const c = document.createElement('canvas');
   c.width = c.height = 256;
   const g = c.getContext('2d');
-  g.fillStyle = '#D3E4C3';
+  g.fillStyle = '#DCEFCB';
   g.fillRect(0, 0, 256, 256);
   g.fillStyle = 'rgba(90, 120, 80, 0.16)';
   g.beginPath(); g.arc(128, 128, 9, 0, Math.PI * 2); g.fill();
