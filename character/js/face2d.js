@@ -66,7 +66,8 @@ export function createFacePlate(profile, headRadius, layout) {
  * Vẽ toàn bộ khuôn mặt theo tham số f (xem face.js), bảng màu c và bố cục L:
  *  L.muzzle {x,y,rx,ry} | null      mảng mõm sáng màu
  *  L.mask   (ctx, h, c) => void      vẽ thêm mảng lông tuỳ ý (h = {X, Y, ell, sx, sy})
- *  L.eye    {x,y,rx,ry,pupil}        vị trí / cỡ mắt, bán kính con ngươi
+ *  L.eye    {x,y,rx,ry,pupil,lidFill} vị trí / cỡ mắt, bán kính con ngươi; lidFill = khoá màu tô mí
+ *                                    (vd 'belly' khi mắt nằm trên mảng lông sáng), bỏ trống = xoá trong suốt lộ đầu
  *  L.brow   {type:'line'|'dot', x,y,len,width} | null
  *  L.blush  {x,y,rx,ry}
  *  L.mouth  {y,w,k}                  vị trí, bề rộng, độ cong tối đa
@@ -126,7 +127,8 @@ export function drawFace(ctx, f, c, L) {
     const dTop = (ry + R) - lidTop * (2 * ry + 0.06);
     const dBot = (ry + R) - lidBot * (2 * ry + 0.06);
     ctx.translate(X(cx), Y(cy));
-    ctx.globalCompositeOperation = 'destination-out';
+    if (L.eye.lidFill) ctx.fillStyle = c[L.eye.lidFill];
+    else ctx.globalCompositeOperation = 'destination-out';
     ctx.rotate(tilt);
     ctx.beginPath(); ctx.ellipse(0, -dTop * sy, R * sx, R * sy, 0, 0, Math.PI * 2); ctx.fill();
     ctx.rotate(-tilt * 1.4);

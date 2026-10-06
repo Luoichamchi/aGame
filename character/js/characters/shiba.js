@@ -25,10 +25,10 @@ export const FACE_LAYOUT = {
   muzzle: null,
   mask(ctx, h, c) {
     ctx.fillStyle = c.belly;
-    h.ell(0, -0.30, 0.64, 0.46); ctx.fill();          // mõm + hai má
+    h.ell(0, -0.22, 0.66, 0.50); ctx.fill();          // mõm + hai má + quanh mắt (urajiro)
   },
-  eye: { x: 0.36, y: 0.08, rx: 0.115, ry: 0.135, pupil: 0.105 },
-  brow: { type: 'dot', x: 0.36, y: 0.34, len: 0.075, width: 0.045 },
+  eye: { x: 0.36, y: 0.08, rx: 0.115, ry: 0.135, pupil: 0.105, lidFill: 'belly' },
+  brow: { type: 'dot', x: 0.36, y: 0.42, len: 0.075, width: 0.045 },
   blush: { x: 0.56, y: -0.14, rx: 0.10, ry: 0.07 },
   mouth: { y: -0.36, w: 0.20, k: 0.08 },
 };
