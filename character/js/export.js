@@ -1,8 +1,8 @@
 // export.js — Bake các pose thủ tục thành keyframe rồi xuất GLB (glTF binary).
 // File GLB chứa: mesh + hierarchy + 7 clip: Idle, Walk, Run, Jump, Roll, Slide, Fly. Mặt là texture trên FacePlate.
 // Dùng được trong Unity / Godot / Blender / three.js. Clip Walk/Run/Fly là "in-place" (engine tự di chuyển).
-import * as THREE from 'three';
-import { GLTFExporter } from 'three/addons/GLTFExporter.js';
+import * as THREE from '../vendor/three.module.js';
+import { GLTFExporter } from '../vendor/GLTFExporter.js';
 import { resetPose } from './character.js';
 import { STATES } from './poses.js';
 

@@ -1,7 +1,7 @@
 // characters/shiba.js — Nhân vật shiba béo, đi 4 chân: dựng hình + bố cục mặt + bộ pose.
 // Dáng lấy theo tranh cách điệu: đầu là một hình tròn to ở phía trước, thân là khối tròn dài phía sau,
 // bốn chân ngắn, tai nhọn, đuôi cuộn trên lưng. Mặt vẽ 2D trên chỏm cầu của đầu.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three.module.js';
 import { makeRig, captureRest } from '../character.js';
 import { createFacePlate } from '../face2d.js';
 import { squash, sm, lerp, easeInOut, clamp01, TAU, STATES } from '../poses.js';

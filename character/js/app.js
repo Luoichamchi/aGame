@@ -1,9 +1,9 @@
 // app.js — Khung cảnh, điều khiển, máy trạng thái, demo tự động, giao diện.
 // Luồng mỗi frame:  input → quyết định trạng thái → di chuyển "Mover" → resetPose → POSES[state]
 //                   → blend với tư thế cũ → biểu cảm (lerp + chớp mắt + nhìn camera) → render.
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/OrbitControls.js';
-import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
+import * as THREE from '../vendor/three.module.js';
+import { OrbitControls } from '../vendor/OrbitControls.js';
+import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 import { resetPose, setColors, capturePose, blendFromSnapshot, currentColors } from './character.js';
 import { bear } from './characters/bear.js';
 import { shiba } from './characters/shiba.js';

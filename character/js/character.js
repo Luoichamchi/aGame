@@ -1,6 +1,6 @@
 // character.js — Phần DÙNG CHUNG cho mọi nhân vật: helper dựng khung, vật liệu, tư thế nghỉ, blend.
 // Mỗi nhân vật nằm trong characters/<tên>.js và export { id, label, focusY, colors, PALETTE, build, POSES }.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three.module.js';
 
 /** Tạo bộ helper dựng khung. Mọi node tạo qua G/M/E đều được ghi vào `nodes` theo tên (phải duy nhất). */
 export function makeRig() {

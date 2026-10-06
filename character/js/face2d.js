@@ -2,7 +2,7 @@
 // lên tấm FacePlate ôm sát phía trước thân. Dùng CHUNG bộ tham số biểu cảm của face.js.
 //
 // Toạ độ vẽ = góc quanh tâm đầu (radian): x ngang (−1.1 … 1.1), y dọc (−0.7 … 0.9) tính theo chiều dài cung / bán kính đầu.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three.module.js';
 
 export const FACE2D = { W: 1024, H: 768, X0: -1.1, X1: 1.1, Y0: -0.7, Y1: 0.9 };
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));

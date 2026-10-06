@@ -1,5 +1,5 @@
 // characters/bear.js — Nhân vật "Bông" (gấu béo, đứng 2 chân): dựng hình + bố cục mặt + bộ pose.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three.module.js';
 import { makeRig, captureRest } from '../character.js';
 import { createFacePlate } from '../face2d.js';
 import { squash, sm, lerp, easeInOut, clamp01, TAU, STATES } from '../poses.js';
