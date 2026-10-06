@@ -45,8 +45,11 @@
 <button id="btn-toggle" title="Ẩn / hiện bảng điều khiển">☰</button>
 
 <div id="panel">
-  <h1>Bông <small>nhân vật thử nghiệm</small></h1>
+  <h1>Nhân vật <small>bản thử nghiệm</small></h1>
   <div id="hud">Trạng thái: <b id="hud-state">…</b><br>Biểu cảm: <b id="hud-face">…</b></div>
+
+  <h2>Nhân vật</h2>
+  <div class="row" id="chars"></div>
 
   <h2>Hành động</h2>
   <div class="row" id="states"></div>
@@ -55,12 +58,7 @@
   <div class="row" id="faces"></div>
 
   <h2>Màu sắc</h2>
-  <div class="colors">
-    <label><input type="color" id="col-body"> Thân</label>
-    <label><input type="color" id="col-belly"> Bụng</label>
-    <label><input type="color" id="col-accent"> Tay chân</label>
-    <label><input type="color" id="col-leaf"> Lá</label>
-  </div>
+  <div class="colors" id="colors"></div>
 
   <h2>Khác</h2>
   <div class="row">

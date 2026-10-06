@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/addons/GLTFExporter.js';
 import { resetPose } from './character.js';
-import { POSES, STATES } from './poses.js';
+import { STATES } from './poses.js';
 
 const FPS = 30;
 
@@ -44,7 +44,7 @@ function sampleClip(name, nodes, rest, duration, applyFrame) {
 }
 
 /** Tạo danh sách AnimationClip từ POSES + EXPRESSIONS. */
-export function bakeClips(nodes, rest) {
+export function bakeClips(nodes, rest, POSES) {
   const clips = [];
   for (const [key, st] of Object.entries(STATES)) {
     const dur = st.loop ? st.period : st.duration;
@@ -56,8 +56,8 @@ export function bakeClips(nodes, rest) {
 }
 
 /** Xuất GLB và tải về. Trả về Promise<số byte>. */
-export function exportGLB(root, nodes, rest, filename = 'bong.glb') {
-  const clips = bakeClips(nodes, rest);
+export function exportGLB(root, nodes, rest, POSES, filename = 'bong.glb') {
+  const clips = bakeClips(nodes, rest, POSES);
   const exporter = new GLTFExporter();
   return new Promise((resolve, reject) => {
     exporter.parse(

@@ -4,9 +4,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/RoomEnvironment.js';
-import { buildCharacter, resetPose, setColors, capturePose, blendFromSnapshot, currentColors, PALETTE } from './character.js';
+import { resetPose, setColors, capturePose, blendFromSnapshot, currentColors } from './character.js';
+import { bear } from './characters/bear.js';
+import { shiba } from './characters/shiba.js';
 import { lerpFace, EXPRESSIONS, FACE_DEFAULT } from './face.js';
-import { POSES, STATES } from './poses.js';
+import { STATES } from './poses.js';
 import { exportGLB } from './export.js';
 
 const TAU = Math.PI * 2;
@@ -89,12 +91,26 @@ scene.add(rim);
 }
 
 // ---------------- Nhân vật ----------------
-const { root, nodes, rest, mats, plate } = buildCharacter();
-let faceColors = currentColors(mats);
+const CHARACTERS = { shiba, bear };
 const mover = new THREE.Group();          // vị trí & hướng trên sân (KHÔNG xuất ra GLB)
 mover.name = 'Mover';
-mover.add(root);
 scene.add(mover);
+let CH, root, nodes, rest, mats, plate, POSES;
+let faceColors;
+
+function loadCharacter(id) {
+  if (root) mover.remove(root);
+  CH = CHARACTERS[id] || CHARACTERS.shiba;
+  ({ root, nodes, rest, mats, plate } = CH.build());
+  POSES = CH.POSES;
+  mover.add(root);
+  faceColors = currentColors(mats);
+  Object.assign(S, { state: 'idle', stateT: 0, flying: false, autoMove: null, snap: null, blendT: 1, landSquash: -1 });
+  controls.target.y = CH.focusY;
+  if (ui.colors) buildColorInputs();
+  document.querySelectorAll('[data-char]').forEach((b) => b.classList.toggle('on', b.dataset.char === CH.id));
+  lastHud = '';
+}
 
 const S = {
   state: 'idle', stateT: 0,
@@ -318,7 +334,7 @@ function update(dt) {
 
   // ---- Camera & nắng đi theo nhân vật ----
   if (!FROZEN) {
-    _tmp.copy(mover.position).y += 0.9;
+    _tmp.copy(mover.position).y += CH.focusY;
     const d = _tmp.sub(controls.target).multiplyScalar(Math.min(1, 5 * dt));
     controls.target.add(d);
     camera.position.add(d);
@@ -346,6 +362,7 @@ const ui = {
   demo: document.getElementById('btn-demo'),
   msg: document.getElementById('msg'),
   panel: document.getElementById('panel'),
+  colors: document.getElementById('colors'),
 };
 let lastHud = '';
 function updateHud(faceKey) {
@@ -387,32 +404,49 @@ function buildUI() {
     b.onclick = () => { if (S.demo) stopDemo(); S.manualFace = key; };
     fBox.appendChild(b);
   }
-  for (const id of ['body', 'belly', 'accent', 'leaf']) {
-    const inp = document.getElementById('col-' + id);
-    inp.value = PALETTE[id];
-    inp.oninput = () => { setColors(mats, { [id]: inp.value }); faceColors = currentColors(mats); };
+  const chBox = document.getElementById('chars');
+  for (const ch of Object.values(CHARACTERS)) {
+    const b = document.createElement('button');
+    b.dataset.char = ch.id;
+    b.textContent = ch.label;
+    b.onclick = () => { stopDemo(); loadCharacter(ch.id); };
+    chBox.appendChild(b);
   }
   ui.demo.onclick = () => (S.demo ? stopDemo() : startDemo());
   document.getElementById('btn-export').onclick = async () => {
     say('Đang bake animation & xuất GLB…');
     try {
       const snapState = { state: S.state, t: S.stateT };
-      const bytes = await exportGLB(root, nodes, rest, 'bong.glb');
+      const bytes = await exportGLB(root, nodes, rest, POSES, CH.id + '.glb');
       S.state = snapState.state; S.stateT = snapState.t;
-      say(`Đã xuất bong.glb (${(bytes / 1024).toFixed(0)} KB) – mở bằng Blender / Unity / Godot.`);
+      say(`Đã xuất ${CH.id}.glb (${(bytes / 1024).toFixed(0)} KB) – mở bằng Blender / Unity / Godot.`);
     } catch (e) {
       console.error(e);
       say('Xuất thất bại: ' + e.message);
     }
   };
   document.getElementById('btn-cam').onclick = () => {
-    camera.position.set(mover.position.x, 2.2, mover.position.z + 5.6);
-    controls.target.set(mover.position.x, 0.9, mover.position.z);
+    camera.position.set(mover.position.x, CH.focusY + 1.3, mover.position.z + 5.6);
+    controls.target.set(mover.position.x, CH.focusY, mover.position.z);
   };
   document.getElementById('btn-toggle').onclick = () => ui.panel.classList.toggle('collapsed');
   if (window.__NO_DOWNLOAD__) {        // bản xem thử online: trình xem chặn tải file
     document.getElementById('btn-export').hidden = true;
     document.getElementById('export-note').hidden = false;
+  }
+}
+
+function buildColorInputs() {
+  ui.colors.innerHTML = '';
+  for (const [id, label] of CH.colors) {
+    const lab = document.createElement('label');
+    const inp = document.createElement('input');
+    inp.type = 'color';
+    inp.id = 'col-' + id;
+    inp.value = CH.PALETTE[id];
+    inp.oninput = () => { setColors(mats, { [id]: inp.value }); faceColors = currentColors(mats); };
+    lab.append(inp, ' ' + label);
+    ui.colors.appendChild(lab);
   }
 }
 
@@ -426,15 +460,19 @@ window.addEventListener('resize', resize);
 
 // ---------------- Khởi động ----------------
 buildUI();
+loadCharacter(params.get('char') || 'shiba');
 resize();
 
-const CAMS = {
-  front: { pos: [0, 1.5, 4.4], target: [0, 0.95, 0] },
-  side:  { pos: [4.4, 1.5, 0], target: [0, 0.95, 0] },
-  tq:    { pos: [3.1, 2.1, 3.4], target: [0, 0.9, 0] },
-  face:  { pos: [0, 1.25, 2.3], target: [0, 1.12, 0] },
-  back:  { pos: [0, 1.6, -4.4], target: [0, 0.95, 0] },
-};
+const CAMS = (() => {
+  const f = CH.focusY, h = CH.headY;
+  return {
+    front: { pos: [0, f + 0.6, 4.4], target: [0, f + 0.05, 0] },
+    side:  { pos: [4.4, f + 0.6, 0], target: [0, f + 0.05, 0] },
+    tq:    { pos: [3.1, f + 1.2, 3.4], target: [0, f, 0] },
+    face:  { pos: [0, h + 0.1, 2.3], target: [0, h - 0.03, 0] },
+    back:  { pos: [0, f + 0.7, -4.4], target: [0, f + 0.05, 0] },
+  };
+})();
 
 if (FROZEN) {
   // Ảnh tĩnh: ?state=walk&t=0.3&face=happy&cam=front
@@ -469,4 +507,4 @@ if (FROZEN) {
 }
 
 // Cho phép chọc vào từ console / test
-window.BONG = { S, nodes, rest, mats, setState, trigger, setFlying, applyAction, startDemo, stopDemo, STATES, EXPRESSIONS, render: () => renderer.render(scene, camera) };
+window.BONG = { S, get nodes() { return nodes; }, get CH() { return CH; }, loadCharacter, setState, trigger, setFlying, applyAction, startDemo, stopDemo, STATES, EXPRESSIONS, render: () => renderer.render(scene, camera) };

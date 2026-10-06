@@ -13,7 +13,7 @@ const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
  * khỏi thân nên bám sát từ trán xuống mõm dù thân dưới phình to hơn cầu.
  * Trả về { mesh, draw(f, colors), texture }.
  */
-export function createFacePlate(profile, headRadius) {
+export function createFacePlate(profile, headRadius, layout) {
   const canvas = document.createElement('canvas');
   canvas.width = FACE2D.W;
   canvas.height = FACE2D.H;
@@ -56,14 +56,22 @@ export function createFacePlate(profile, headRadius) {
     const key = JSON.stringify([f, c]);
     if (key === lastKey) return;
     lastKey = key;
-    drawFace(ctx, f, c);
+    drawFace(ctx, f, c, layout);
     texture.needsUpdate = true;
   }
   return { mesh, draw, texture, canvas };
 }
 
-/** Vẽ toàn bộ khuôn mặt theo tham số f (xem face.js) và bảng màu c. */
-export function drawFace(ctx, f, c) {
+/**
+ * Vẽ toàn bộ khuôn mặt theo tham số f (xem face.js), bảng màu c và bố cục L:
+ *  L.muzzle {x,y,rx,ry} | null      mảng mõm sáng màu
+ *  L.mask   (ctx, h, c) => void      vẽ thêm mảng lông tuỳ ý (h = {X, Y, ell, sx, sy})
+ *  L.eye    {x,y,rx,ry,pupil}        vị trí / cỡ mắt, bán kính con ngươi
+ *  L.brow   {type:'line'|'dot', x,y,len,width} | null
+ *  L.blush  {x,y,rx,ry}
+ *  L.mouth  {y,w,k}                  vị trí, bề rộng, độ cong tối đa
+ */
+export function drawFace(ctx, f, c, L) {
   const { W, H, X0, X1, Y0, Y1 } = FACE2D;
   const sx = W / (X1 - X0), sy = H / (Y1 - Y0);
   const X = (x) => (x - X0) * sx;
@@ -74,22 +82,23 @@ export function drawFace(ctx, f, c) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  // Mõm kem (vẽ phẳng; mũi vẫn là khối 3D)
+  // Mảng lông sáng: mõm và/hoặc mask tuỳ nhân vật
   ctx.fillStyle = c.belly;
-  ell(0, -0.24, 0.50, 0.35);
-  ctx.fill();
+  if (L.mask) L.mask(ctx, { X, Y, ell, sx, sy }, c);
+  if (L.muzzle) { ell(L.muzzle.x, L.muzzle.y, L.muzzle.rx, L.muzzle.ry); ctx.fill(); }
 
   // Má hồng
   const b = clamp(f.blush, 0, 1.6);
   if (b > 0.01) {
     ctx.fillStyle = c.cheek;
     ctx.globalAlpha = 0.85;
-    for (const sg of [1, -1]) { ell(sg * 0.64, -0.12, 0.11 * b, 0.08 * b); ctx.fill(); }
+    for (const sg of [1, -1]) { ell(sg * L.blush.x, L.blush.y, L.blush.rx * b, L.blush.ry * b); ctx.fill(); }
     ctx.globalAlpha = 1;
   }
 
   // Mắt
-  const ex = 0.40, ey = 0.21, rx = 0.185, ry = 0.21;
+  const { x: ex, y: ey, rx, ry } = L.eye;
+  const pk = L.eye.pupil / 0.15;                    // hệ số cỡ so với mắt gấu
   for (const sg of [1, -1]) {
     const cx = sg * ex, cy = ey;
     const extra = sg < 0 ? f.wink : 0;              // nháy mắt phải (−X)
@@ -102,14 +111,14 @@ export function drawFace(ctx, f, c) {
     ctx.fill();
     // Con ngươi + chấm sáng
     const ps = clamp(f.pupil, 0.35, 1.6);
-    const pr = 0.15 * ps;
-    const px = cx + f.lookX * 0.05, py = cy + f.lookY * 0.04;
+    const pr = L.eye.pupil * ps;
+    const px = cx + f.lookX * 0.05 * pk, py = cy + f.lookY * 0.04 * pk;
     ctx.fillStyle = c.pupil;
     ell(px, py, pr, pr * 1.05);
     ctx.fill();
     ctx.fillStyle = '#FFFFFF';
-    ell(px - 0.05 * ps, py + 0.065 * ps, 0.05 * ps, 0.05 * ps); ctx.fill();
-    ell(px + 0.05 * ps, py - 0.06 * ps, 0.022 * ps, 0.022 * ps); ctx.fill();
+    ell(px - 0.05 * ps * pk, py + 0.065 * ps * pk, 0.05 * ps * pk, 0.05 * ps * pk); ctx.fill();
+    ell(px + 0.05 * ps * pk, py - 0.06 * ps * pk, 0.022 * ps * pk, 0.022 * ps * pk); ctx.fill();
     // Mí mắt = 2 hình tròn lớn ép từ trên / dưới (mép trên "∪", mép dưới "∩" → mắt cười).
     // Vùng mí được XOÁ trong suốt để lộ đầu thật (không lệch tông), rồi vẽ nét mí mỏng khi mắt khép.
     const R = 0.55;
@@ -125,7 +134,7 @@ export function drawFace(ctx, f, c) {
     ctx.globalCompositeOperation = 'source-over';
     // nét mí
     ctx.strokeStyle = c.accent;
-    ctx.lineWidth = 0.028 * sx;
+    ctx.lineWidth = 0.028 * sx * Math.max(0.6, Math.sqrt(pk));
     const aBot = clamp((lidBot - 0.3) / 0.3, 0, 1);
     if (aBot > 0) {
       ctx.globalAlpha = aBot;
@@ -141,25 +150,37 @@ export function drawFace(ctx, f, c) {
     ctx.restore();
   }
 
-  // Lông mày
-  ctx.strokeStyle = c.accent;
-  ctx.lineWidth = 0.04 * sx;
-  for (const sg of [1, -1]) {
-    const bx = sg * ex, by = 0.50 + f.browUp * 1.8 - Math.abs(f.brow) * 0.02;
-    const ang = -sg * f.brow * 0.6;
-    const L = 0.11;
-    ctx.beginPath();
-    ctx.moveTo(X(bx - L * Math.cos(ang)), Y(by + L * Math.sin(ang)));
-    ctx.lineTo(X(bx + L * Math.cos(ang)), Y(by - L * Math.sin(ang)));
-    ctx.stroke();
+  // Lông mày: nét ('line') hoặc chấm lông sáng ('dot', kiểu shiba)
+  if (L.brow) {
+    for (const sg of [1, -1]) {
+      const bx = sg * L.brow.x, by = L.brow.y + f.browUp * 1.8 - Math.abs(f.brow) * 0.02;
+      const ang = -sg * f.brow * 0.6;
+      if (L.brow.type === 'dot') {
+        ctx.save();
+        ctx.translate(X(bx), Y(by));
+        ctx.rotate(ang);
+        ctx.fillStyle = c.belly;
+        ctx.beginPath(); ctx.ellipse(0, 0, L.brow.len * sx, L.brow.width * sy, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      } else {
+        ctx.strokeStyle = c.accent;
+        ctx.lineWidth = L.brow.width * sx;
+        const Lh = L.brow.len;
+        ctx.beginPath();
+        ctx.moveTo(X(bx - Lh * Math.cos(ang)), Y(by + Lh * Math.sin(ang)));
+        ctx.lineTo(X(bx + Lh * Math.cos(ang)), Y(by - Lh * Math.sin(ang)));
+        ctx.stroke();
+      }
+    }
   }
 
   // Miệng: đường môi trên (bezier), khoang miệng mở, lưỡi
-  const my = -0.33;
-  const w = 0.28 * clamp(f.width, 0.4, 1.4);
-  const k = f.curve * 0.11;
+  const my = L.mouth.y;
+  const w = L.mouth.w * clamp(f.width, 0.4, 1.4);
+  const k = f.curve * L.mouth.k;
   const op = clamp(f.open, 0, 1);
   const tg = clamp(f.tongue, 0, 1);
+  const mk = L.mouth.w / 0.28;                        // hệ số cỡ miệng so với gấu
   const lip = (yEnd, yCtrl) => {
     ctx.beginPath();
     ctx.moveTo(X(-w / 2), Y(yEnd));
@@ -167,7 +188,7 @@ export function drawFace(ctx, f, c) {
   };
   const yEnd = my + k, yCtrl = my - k;
   if (op > 0.02) {
-    const depth = op * 0.24;
+    const depth = op * 0.24 * mk;
     ctx.fillStyle = c.mouth;
     ctx.beginPath();
     ctx.moveTo(X(-w / 2), Y(yEnd));
@@ -175,23 +196,22 @@ export function drawFace(ctx, f, c) {
     ctx.bezierCurveTo(X(w / 4), Y(yCtrl - depth), X(-w / 4), Y(yCtrl - depth), X(-w / 2), Y(yEnd));
     ctx.closePath();
     ctx.fill();
-    // lưỡi trong miệng
     ctx.save(); ctx.clip();
     ctx.fillStyle = c.tongue;
-    ell(0, yCtrl - depth * 0.9, 0.10, 0.06 + depth * 0.25);
+    ell(0, yCtrl - depth * 0.9, 0.10 * mk, (0.06 + depth * 0.25) * mk);
     ctx.fill();
     ctx.restore();
   }
   if (tg > 0.02) {                                  // lè lưỡi ra ngoài
     ctx.fillStyle = c.tongue;
-    ell(0.02, yCtrl - op * 0.2 - tg * 0.06, 0.075 * tg, 0.085 * tg);
+    ell(0.02 * mk, yCtrl - op * 0.2 * mk - tg * 0.06 * mk, 0.075 * tg * mk, 0.085 * tg * mk);
     ctx.fill();
     ctx.strokeStyle = c.mouth;
     ctx.lineWidth = 0.012 * sx;
     ctx.stroke();
   }
   ctx.strokeStyle = c.mouth;
-  ctx.lineWidth = 0.034 * sx;
+  ctx.lineWidth = 0.034 * sx * Math.max(0.7, mk);
   lip(yEnd, yCtrl);
   ctx.stroke();
 }

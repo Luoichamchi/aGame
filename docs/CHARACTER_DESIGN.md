@@ -1,8 +1,48 @@
-# Thiết kế nhân vật "Bông" (gấu béo)
+# Thiết kế nhân vật
 
-> Tên tạm. Đổi tên ở `character/index.html` (tiêu đề) và `character/js/app.js` (tên file GLB xuất ra).
+Hai nhân vật dùng chung một bộ máy (trạng thái, biểu cảm, cách vẽ mặt, xuất GLB, điều khiển). Mỗi nhân vật là một module trong `character/js/characters/` export `{ id, label, focusY, headY, colors, PALETTE, build, POSES }`:
 
-## 1. Ý tưởng
+| | Shiba béo (`shiba.js`) | Bông, gấu béo (`bear.js`) |
+|---|---|---|
+| Dáng | 4 chân, đầu tròn to phía trước, thân tròn dài phía sau | 2 chân, một khối trứng |
+| Mặt | chỏm cầu trên đầu, xoay cùng đầu | tấm theo profile thân, cố định vào thân |
+| Pose | nhịp chéo khi đi, phi nước đại khi chạy, lăn ngang, trượt bụng | như người: vung tay, lăn nhào lộn, trượt ngả |
+
+Thêm nhân vật thứ ba: copy một file trong `characters/`, giữ đúng các tên node mà `POSES` của chính nó dùng, rồi thêm vào `CHARACTERS` trong `app.js`.
+
+## A. Shiba béo
+
+![Shiba](images/shiba_states.png)
+
+| | |
+|---|---|
+| **Nguồn tham chiếu** | Ảnh chó shiba thật + cách cách điệu trong tranh hướng dẫn vẽ (đầu một hình tròn to, thân một khối tròn, chân ngắn). Không đồ lại nét, không dùng ảnh làm texture |
+| **Kích thước** | Đầu r = 0.50, tâm (0, 0.98, 0.42). Thân elip (0.44, 0.42, 0.52) tâm (0, 0.62, −0.08). Cao ≈ 1.5 kể cả tai, dài ≈ 1.3 |
+| **Chân** | 4 chân, pivot y = 0.42: trước (±0.20, z 0.36), sau (±0.23, z −0.38); ống chân màu lông, bàn chân màu sáng |
+| **Tai** | nón 28 cạnh ép dẹt (0.15 × 0.30), tai trong hồng; pivot (±0.27, 0.37, −0.04) so với tâm đầu, nghiêng ra 22° |
+| **Đuôi** | cung torus 261° (r 0.17, ống 0.085) dựng đứng trên mông, đầu đuôi sáng; vẫy = xoay quanh Z |
+| **Mặt** | mask lông sáng che mõm + hai má (elip tâm −0.30, 0.64 × 0.46 rad); mắt nhỏ đen gần hết (±0.36, 0.08), hai chấm mày sáng ở y = 0.34; miệng nhỏ ở −0.36 |
+| **Màu** | lông `#E89B55`, lông sáng `#FFF4E4`, mũi `#4B3328`, má / tai trong `#F7A6B5` |
+
+Cây node:
+
+```
+Root
+└─ Hips (0, 0.62, 0)      Body, Chest, Belly
+   ├─ LegFL / LegFR / LegBL / LegBR  → Shin*, Paw*
+   ├─ Tail                → TailMesh → TailTip
+   └─ Neck (tâm đầu)      → Head → HeadMesh, EarL/R (EarMesh, EarInner), Nose, FacePlate
+```
+
+Bộ pose 4 chân (`shiba.js`, `POSES`): chân `rotation.x > 0` = vung ra sau. Đi: trước-trái cùng pha sau-phải (2.0 bước/s). Chạy: hai chân trước cùng pha, hai chân sau lệch 2.6 rad, thân nhấp theo (3.0 nhịp/s), tai bạt ra sau, đuôi duỗi. Nhảy: thụp xuống, bật lên ngẩng mũi rồi chúi xuống. Lăn: lộn ngang quanh trục Z, tâm quay = tâm thân, chân dạng. Trượt: hạ thân 22 cm, chân trước duỗi tới, chân sau duỗi lui, ngẩng đầu. Bay: siêu nhân, tai vỗ như cánh, đuôi xoay như cánh quạt.
+
+![Biểu cảm shiba](images/shiba_faces.png)
+
+## B. Bông, gấu béo
+
+> Tên tạm. Đổi tên ở `characters/bear.js` (`label`).
+
+### 1. Ý tưởng
 
 | | |
 |---|---|
@@ -14,9 +54,9 @@
 | **Hướng nhìn** | +Z (mặt nhìn về +Z, +Y lên trên, +X là bên trái nhân vật) |
 | **Mặt** | Vẽ 2D kiểu Animal Crossing / Fall Guys: mõm, mắt, mày, miệng, má vẽ thành texture dán lên `FacePlate`, tấm lathe lệch 1.2 cm khỏi thân nên bám sát từ trán xuống mõm. Mặt và mũi gắn cố định vào thân; "gật đầu" chỉ xoay tai và lá |
 
-![Các trạng thái](images/states_sheet.png)
+![Các trạng thái](images/bear_states.png)
 
-## 2. Bộ phận & tên node
+### 2. Bộ phận & tên node
 
 Mọi bộ phận là `Object3D` có **tên duy nhất**. Tên này là "hợp đồng" giữa 3 file: `character.js` tạo, `poses.js` / `face.js` điều khiển, `export.js` bake ra GLB (track animation tham chiếu theo tên).
 
@@ -48,7 +88,7 @@ Kích thước chính (file `character.js`, hàm `buildCharacter`):
 
 Bảng màu mặc định (`PALETTE` trong `character.js`): lông `#EBA863`, bụng / mõm / tai trong `#FFF1DB`, tay chân / mũi / đầu đuôi `#6E4530`, lá `#6BD45E`, má `#FF9DB4`, con ngươi `#1E1B22`, miệng `#6E2F34`.
 
-## 3. Biểu cảm
+## C. Biểu cảm (dùng chung)
 
 Một biểu cảm = **1 bộ tham số số học** (`face.js`, `EXPRESSIONS`). `face2d.js` đọc bộ tham số này và vẽ mặt bằng Canvas 2D (1024×768) rồi dán lên `FacePlate`, tấm lathe dựng từ chính profile thân, lệch ra 1.2 cm. Toạ độ vẽ: ngang = góc quanh trục đứng, dọc = chiều dài cung dọc profile chia cho bán kính đầu (nên phần đầu đúng là radian, phần mõm không méo). Vùng mí mắt được xoá trong suốt để lộ đầu thật; tấm mặt không nhận bóng (bóng VSM sẽ in vệt lên vùng trong suốt).
 
@@ -74,13 +114,13 @@ Cơ chế vẽ:
 
 14 biểu cảm có sẵn:
 
-![Biểu cảm](images/faces_sheet.png)
+![Biểu cảm gấu](images/bear_faces.png)
 
 Mỗi trạng thái có biểu cảm mặc định (cột `face` trong `STATES`): đứng yên → bình thường, đi → vui, chạy → tập trung, nhảy / bay → wow, lăn → cười lớn, trượt → phấn khích. Người chơi / gameplay có thể ghi đè bằng `S.manualFace`.
 
-## 4. Trạng thái hoạt động
+## D. Trạng thái hoạt động (bảng dùng chung, pose riêng từng nhân vật)
 
-`poses.js` — mỗi trạng thái là hàm thuần `pose(nodes, t)`, giả định khung đang ở tư thế nghỉ. Nhờ vậy cùng một hàm dùng cho cả chạy thật và bake.
+`poses.js` giữ bảng `STATES` (tên, phím, thời lượng, tốc độ, biểu cảm mặc định). Hàm pose nằm trong file của từng nhân vật: hàm thuần `pose(nodes, t)`, giả định khung đang ở tư thế nghỉ, nên cùng một hàm dùng cho cả chạy thật và bake. Bảng dưới mô tả bộ pose của gấu; shiba xem mục A.
 
 | Trạng thái | Loại | Chu kỳ / thời lượng | Tốc độ | Ý chính của chuyển động |
 |---|---|---|---|---|
@@ -102,7 +142,7 @@ Quy tắc chuyển trạng thái (`app.js`):
 
 Squash & stretch dùng `Root.scale = (1/√s, s, 1/√s)` để giữ "thể tích" → cảm giác dẻo, mềm.
 
-## 5. Xuất sang engine
+## E. Xuất sang engine
 
 Nút **Xuất GLB** (hoặc `exportGLB()` trong `export.js`):
 
@@ -116,16 +156,16 @@ Lưu ý khi dùng:
 - `Roll` xoay `Root` 360°, tốc độ ngang do engine cấp.
 - Hierarchy xuất ra là nhóm lồng nhau (không có skin / bone). Muốn rig xương chuẩn thì import GLB vào Blender, dùng cây node làm khung tham chiếu.
 
-## 6. Mở rộng tiếp
+## F. Mở rộng tiếp
 
 | Muốn | Sửa ở |
 |---|---|
 | Thêm biểu cảm | `face.js` → thêm 1 dòng trong `EXPRESSIONS`; UI và demo tự nhận |
-| Đổi nét vẽ mặt 2D | `face2d.js` → `drawFace` (vị trí, cỡ mắt, kiểu miệng…) |
-| Thêm trạng thái (vd. bơi, ngồi) | `poses.js` → thêm vào `STATES` + hàm trong `POSES`; `app.js` thêm phím nếu cần |
-| Đổi tỉ lệ / màu | `character.js` (`buildCharacter`, `PALETTE`) |
-| Phụ kiện (mũ, kính) | thêm mesh con của `Head` trong `character.js`, đặt tên mới |
-| Chụp lại ảnh tài liệu | `npm i playwright-core` rồi `node tools/screenshot.mjs docs/images` (cần server tĩnh ở cổng 8765) |
+| Đổi vị trí / cỡ mắt, mày, miệng | `FACE_LAYOUT` trong file nhân vật; đổi cách vẽ thì sửa `face2d.js` → `drawFace` |
+| Thêm trạng thái (vd. bơi, ngồi) | `poses.js` → thêm vào `STATES`; thêm hàm cùng tên vào `POSES` của TỪNG nhân vật; `app.js` thêm phím nếu cần |
+| Đổi tỉ lệ / màu | `characters/<tên>.js` (`build`, `PALETTE`) |
+| Phụ kiện (mũ, kính) | thêm mesh con của `Head` trong `characters/<tên>.js`, đặt tên mới |
+| Chụp lại ảnh tài liệu | `npm i playwright-core` rồi `node tools/screenshot.mjs <thư mục> http://127.0.0.1:8765/character/index.html shiba` (cần server tĩnh ở cổng 8765) |
 
-Tham số URL để xem tư thế tĩnh (dùng khi chỉnh số liệu): `index.html?state=jump&t=0.5&face=wow&cam=tq&lift=1&ui=0`
+Tham số URL để xem tư thế tĩnh (dùng khi chỉnh số liệu): `index.html?char=shiba&state=jump&t=0.5&face=wow&cam=tq&lift=1&ui=0`
 (`cam`: front / side / tq / face / back; `lift`: nâng camera).

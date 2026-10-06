@@ -1,5 +1,5 @@
 // tools/screenshot.mjs — Chụp ảnh tĩnh các trạng thái / biểu cảm bằng Chromium headless.
-// Dùng:  node tools/screenshot.mjs [outDir] [baseUrl]
+// Dùng:  node tools/screenshot.mjs [outDir] [baseUrl] [char=shiba|bear]
 // Cần:   npm i playwright-core  (hoặc playwright) ; server tĩnh:  python3 -m http.server 8765
 import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
@@ -7,6 +7,7 @@ import { join } from 'node:path';
 
 const out = process.argv[2] || 'docs/images';
 const base = process.argv[3] || 'http://127.0.0.1:8765/character/index.html';
+const CHAR = process.argv[4] || 'shiba';
 const exe = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium';
 mkdirSync(out, { recursive: true });
 
@@ -34,7 +35,7 @@ page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') 
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
 
 for (const [name, q] of SHOTS) {
-  const url = base + '?ui=0&' + new URLSearchParams(q).toString();
+  const url = base + '?ui=0&char=' + CHAR + '&' + new URLSearchParams(q).toString();
   await page.goto(url);
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 20000 });
   await page.screenshot({ path: join(out, name + '.png') });
